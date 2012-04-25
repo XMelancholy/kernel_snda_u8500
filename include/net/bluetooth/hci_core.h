@@ -581,7 +581,7 @@ int hci_chan_del(struct hci_chan *chan);
 void hci_chan_list_flush(struct hci_conn *conn);
 
 struct hci_conn *hci_connect(struct hci_dev *hdev, int type, bdaddr_t *dst,
-				__u8 sec_level, __u8 auth_type,
+				__u8 dst_type, __u8 sec_level, __u8 auth_type,
 				struct bt_sco_parameters *sco_parameters);
 
 int hci_conn_check_link_mode(struct hci_conn *conn);

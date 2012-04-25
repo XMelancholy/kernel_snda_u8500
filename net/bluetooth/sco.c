@@ -194,8 +194,8 @@ static int sco_connect(struct sock *sk)
 	else
 		type = SCO_LINK;
 
-	hcon = hci_connect(hdev, type, dst,
-				BT_SECURITY_LOW, HCI_AT_NO_BONDING, param);
+	hcon = hci_connect(hdev, type, dst, BDADDR_BREDR, BT_SECURITY_LOW,
+				HCI_AT_NO_BONDING, param);
 	if (IS_ERR(hcon)) {
 		err = PTR_ERR(hcon);
 		goto done;
