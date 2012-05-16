@@ -71,7 +71,7 @@ static void l2cap_send_cmd(struct l2cap_conn *conn, u8 ident, u8 code, u16 len,
 								void *data);
 static int l2cap_build_conf_req(struct l2cap_chan *chan, void *data);
 static void l2cap_send_disconn_req(struct l2cap_conn *conn,
-				struct l2cap_chan *chan, int err);
+				   struct l2cap_chan *chan, int err);
 
 /* ---- L2CAP channels ---- */
 
@@ -593,7 +593,7 @@ void l2cap_chan_close(struct l2cap_chan *chan, int reason)
 			struct l2cap_conn_rsp rsp;
 			__u16 result;
 
-			if (bt_sk(sk)->defer_setup)
+			if (test_bit(BT_SK_DEFER_SETUP, &bt_sk(sk)->flags))
 				result = L2CAP_CR_SEC_BLOCK;
 			else
 				result = L2CAP_CR_BAD_PSM;
@@ -1057,7 +1057,8 @@ static void l2cap_conn_start(struct l2cap_conn *conn)
 
 			if (l2cap_chan_check_security(chan)) {
 				lock_sock(sk);
-				if (bt_sk(sk)->defer_setup) {
+				if (test_bit(BT_SK_DEFER_SETUP,
+					     &bt_sk(sk)->flags)) {
 					struct sock *parent = bt_sk(sk)->parent;
 					rsp.result = cpu_to_le16(L2CAP_CR_PEND);
 					rsp.status = cpu_to_le16(L2CAP_CS_AUTHOR_PEND);
@@ -3064,7 +3065,7 @@ static int l2cap_connect_req(struct l2cap_conn *conn,
 
 	if (conn->info_state & L2CAP_INFO_FEAT_MASK_REQ_DONE) {
 		if (l2cap_chan_check_security(chan)) {
-			if (bt_sk(sk)->defer_setup) {
+			if (test_bit(BT_SK_DEFER_SETUP, &bt_sk(sk)->flags)) {
 				__l2cap_state_change(chan, BT_CONNECT2);
 				result = L2CAP_CR_PEND;
 				status = L2CAP_CS_AUTHOR_PEND;
@@ -4992,7 +4993,7 @@ int l2cap_security_cfm(struct hci_conn *hcon, u8 status, u8 encrypt)
 						chan->state == BT_CONFIG)) {
 			struct sock *sk = chan->sk;
 
-			bt_sk(sk)->suspended = false;
+			clear_bit(BT_SK_SUSPEND, &bt_sk(sk)->flags);
 			sk->sk_state_change(sk);
 
 			l2cap_check_encryption(chan, encrypt);
@@ -5014,7 +5015,8 @@ int l2cap_security_cfm(struct hci_conn *hcon, u8 status, u8 encrypt)
 			lock_sock(sk);
 
 			if (!status) {
-				if (bt_sk(sk)->defer_setup) {
+				if (test_bit(BT_SK_DEFER_SETUP,
+					     &bt_sk(sk)->flags)) {
 					struct sock *parent = bt_sk(sk)->parent;
 					res = L2CAP_CR_PEND;
 					stat = L2CAP_CS_AUTHOR_PEND;
