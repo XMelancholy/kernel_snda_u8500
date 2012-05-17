@@ -113,7 +113,8 @@ void hci_send_to_sock(struct hci_dev *hdev, struct sk_buff *skb)
 		flt = &hci_pi(sk)->filter;
 
 		if (!test_bit((bt_cb(skb)->pkt_type == HCI_VENDOR_PKT) ?
-				0 : (bt_cb(skb)->pkt_type & HCI_FLT_TYPE_BITS), &flt->type_mask))
+			      0 : (bt_cb(skb)->pkt_type & HCI_FLT_TYPE_BITS),
+			      &flt->type_mask))
 			continue;
 
 		if (bt_cb(skb)->pkt_type == HCI_EVENT_PKT) {
@@ -748,7 +749,7 @@ static inline void hci_sock_cmsg(struct sock *sk, struct msghdr *msg, struct sk_
 }
 
 static int hci_sock_recvmsg(struct kiocb *iocb, struct socket *sock,
-				struct msghdr *msg, size_t len, int flags)
+			    struct msghdr *msg, size_t len, int flags)
 {
 	int noblock = flags & MSG_DONTWAIT;
 	struct sock *sk = sock->sk;
@@ -885,8 +886,9 @@ static int hci_sock_sendmsg(struct kiocb *iocb, struct socket *sock,
 		hci_sock_check_process_qos(hdev, opcode, skb);
 
 		if (((ogf > HCI_SFLT_MAX_OGF) ||
-				!hci_test_bit(ocf & HCI_FLT_OCF_BITS, &hci_sec_filter.ocf_mask[ogf])) &&
-					!capable(CAP_NET_RAW)) {
+		     !hci_test_bit(ocf & HCI_FLT_OCF_BITS,
+				   &hci_sec_filter.ocf_mask[ogf])) &&
+		    !capable(CAP_NET_RAW)) {
 			err = -EPERM;
 			goto drop;
 		}
