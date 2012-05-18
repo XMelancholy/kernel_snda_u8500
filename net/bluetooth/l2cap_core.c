@@ -2959,6 +2959,7 @@ done:
 		break;
 
 	case L2CAP_MODE_STREAMING:
+		l2cap_txwin_setup(chan);
 		rfc.mode            = L2CAP_MODE_STREAMING;
 		rfc.txwin_size      = 0;
 		rfc.max_transmit    = 0;
