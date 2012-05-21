@@ -73,7 +73,7 @@ static int l2cap_build_conf_req(struct l2cap_chan *chan, void *data);
 static void l2cap_send_disconn_req(struct l2cap_conn *conn,
 				   struct l2cap_chan *chan, int err);
 
-static int l2cap_tx(struct l2cap_chan *chan, struct l2cap_ctrl *control,
+static void l2cap_tx(struct l2cap_chan *chan, struct l2cap_ctrl *control,
 		    struct sk_buff_head *skbs, u8 event);
 
 /* ---- L2CAP channels ---- */
@@ -1700,8 +1700,8 @@ static void l2cap_retrans_timeout(struct work_struct *work)
 	l2cap_chan_put(chan);
 }
 
-static int l2cap_streaming_send(struct l2cap_chan *chan,
-				struct sk_buff_head *skbs)
+static void l2cap_streaming_send(struct l2cap_chan *chan,
+				 struct sk_buff_head *skbs)
 {
 	struct sk_buff *skb;
 	struct l2cap_ctrl *control;
@@ -1734,8 +1734,6 @@ static int l2cap_streaming_send(struct l2cap_chan *chan,
 		chan->next_tx_seq = __next_seq(chan, chan->next_tx_seq);
 		chan->frames_sent++;
 	}
-
-	return 0;
 }
 
 static int l2cap_ertm_send(struct l2cap_chan *chan)
@@ -2269,13 +2267,11 @@ int l2cap_chan_send(struct l2cap_chan *chan, struct msghdr *msg, size_t len,
 			break;
 
 		if (chan->mode == L2CAP_MODE_ERTM)
-			err = l2cap_tx(chan, NULL, &seg_queue,
-				       L2CAP_EV_DATA_REQUEST);
+			l2cap_tx(chan, NULL, &seg_queue, L2CAP_EV_DATA_REQUEST);
 		else
-			err = l2cap_streaming_send(chan, &seg_queue);
+			l2cap_streaming_send(chan, &seg_queue);
 
-		if (!err)
-			err = len;
+		err = len;
 
 		/* If the skbs were not queued for sending, they'll still be in
 		 * seg_queue and need to be purged.
@@ -2398,12 +2394,10 @@ static void l2cap_abort_rx_srej_sent(struct l2cap_chan *chan)
 	chan->rx_state = L2CAP_RX_STATE_RECV;
 }
 
-static int l2cap_tx_state_xmit(struct l2cap_chan *chan,
-			       struct l2cap_ctrl *control,
-			       struct sk_buff_head *skbs, u8 event)
+static void l2cap_tx_state_xmit(struct l2cap_chan *chan,
+				struct l2cap_ctrl *control,
+				struct sk_buff_head *skbs, u8 event)
 {
-	int err = 0;
-
 	BT_DBG("chan %p, control %p, skbs %p, event %d", chan, control, skbs,
 	       event);
 
@@ -2470,16 +2464,12 @@ static int l2cap_tx_state_xmit(struct l2cap_chan *chan,
 	default:
 		break;
 	}
-
-	return err;
 }
 
-static int l2cap_tx_state_wait_f(struct l2cap_chan *chan,
-				 struct l2cap_ctrl *control,
-				 struct sk_buff_head *skbs, u8 event)
+static void l2cap_tx_state_wait_f(struct l2cap_chan *chan,
+				  struct l2cap_ctrl *control,
+				  struct sk_buff_head *skbs, u8 event)
 {
-	int err = 0;
-
 	BT_DBG("chan %p, control %p, skbs %p, event %d", chan, control, skbs,
 	       event);
 
@@ -2552,31 +2542,25 @@ static int l2cap_tx_state_wait_f(struct l2cap_chan *chan,
 	default:
 		break;
 	}
-
-	return err;
 }
 
-static int l2cap_tx(struct l2cap_chan *chan, struct l2cap_ctrl *control,
-		    struct sk_buff_head *skbs, u8 event)
+static void l2cap_tx(struct l2cap_chan *chan, struct l2cap_ctrl *control,
+		     struct sk_buff_head *skbs, u8 event)
 {
-	int err = 0;
-
 	BT_DBG("chan %p, control %p, skbs %p, event %d, state %d",
 	       chan, control, skbs, event, chan->tx_state);
 
 	switch (chan->tx_state) {
 	case L2CAP_TX_STATE_XMIT:
-		err = l2cap_tx_state_xmit(chan, control, skbs, event);
+		l2cap_tx_state_xmit(chan, control, skbs, event);
 		break;
 	case L2CAP_TX_STATE_WAIT_F:
-		err = l2cap_tx_state_wait_f(chan, control, skbs, event);
+		l2cap_tx_state_wait_f(chan, control, skbs, event);
 		break;
 	default:
 		/* Ignore event */
 		break;
 	}
-
-	return err;
 }
 
 static void l2cap_pass_to_tx(struct l2cap_chan *chan,
