@@ -180,7 +180,7 @@ static void __l2cap_state_change(struct l2cap_chan *chan, int state)
 						state_to_string(state));
 
 	chan->state = state;
-	chan->ops->state_change(chan->data, state);
+	chan->ops->state_change(chan, state);
 }
 
 static void l2cap_state_change(struct l2cap_chan *chan, int state)
@@ -387,7 +387,7 @@ static void l2cap_chan_timeout(struct work_struct *work)
 
 	l2cap_chan_unlock(chan);
 
-	chan->ops->close(chan->data);
+	chan->ops->close(chan);
 zapped:
 	mutex_unlock(&conn->chan_lock);
 
@@ -576,7 +576,7 @@ static void l2cap_chan_cleanup_listen(struct sock *parent)
 		l2cap_chan_close(chan, ECONNRESET);
 		l2cap_chan_unlock(chan);
 
-		chan->ops->close(chan->data);
+		chan->ops->close(chan);
 	}
 }
 
@@ -1220,7 +1220,7 @@ static void l2cap_le_conn_ready(struct l2cap_conn *conn)
 		goto clean;
 	}
 
-	chan = pchan->ops->new_connection(pchan->data);
+	chan = pchan->ops->new_connection(pchan);
 	if (!chan)
 		goto clean;
 
@@ -1339,7 +1339,7 @@ static void l2cap_conn_del(struct hci_conn *hcon, int err)
 
 		l2cap_chan_unlock(chan);
 
-		chan->ops->close(chan->data);
+		chan->ops->close(chan);
 		l2cap_chan_put(chan);
 	}
 
@@ -2583,7 +2583,7 @@ static void l2cap_raw_recv(struct l2cap_conn *conn, struct sk_buff *skb)
 		if (!nskb)
 			continue;
 
-		if (chan->ops->recv(chan->data, nskb))
+		if (chan->ops->recv(chan, nskb))
 			kfree_skb(nskb);
 	}
 
@@ -3443,7 +3443,7 @@ static int l2cap_connect_req(struct l2cap_conn *conn,
 		goto response;
 	}
 
-	chan = pchan->ops->new_connection(pchan->data);
+	chan = pchan->ops->new_connection(pchan);
 	if (!chan)
 		goto response;
 
@@ -3452,7 +3452,7 @@ static int l2cap_connect_req(struct l2cap_conn *conn,
 	/* Check if we already have channel with that dcid */
 	if (__l2cap_get_chan_by_dcid(conn, scid)) {
 		sock_set_flag(sk, SOCK_ZAPPED);
-		chan->ops->close(chan->data);
+		chan->ops->close(chan);
 		goto response;
 	}
 
@@ -3881,7 +3881,7 @@ static inline int l2cap_disconnect_req(struct l2cap_conn *conn,
 
 	l2cap_chan_unlock(chan);
 
-	chan->ops->close(chan->data);
+	chan->ops->close(chan);
 	l2cap_chan_put(chan);
 
 	mutex_unlock(&conn->chan_lock);
@@ -3920,7 +3920,7 @@ static inline int l2cap_disconnect_rsp(struct l2cap_conn *conn,
 
 	l2cap_chan_unlock(chan);
 
-	chan->ops->close(chan->data);
+	chan->ops->close(chan);
 	l2cap_chan_put(chan);
 
 	mutex_unlock(&conn->chan_lock);
@@ -4501,7 +4501,7 @@ static int l2cap_reassemble_sdu(struct l2cap_chan *chan, struct sk_buff *skb,
 		if (chan->sdu)
 			break;
 
-		err = chan->ops->recv(chan->data, skb);
+		err = chan->ops->recv(chan, skb);
 		break;
 
 	case L2CAP_SAR_START:
@@ -4551,7 +4551,7 @@ static int l2cap_reassemble_sdu(struct l2cap_chan *chan, struct sk_buff *skb,
 		if (chan->sdu->len != chan->sdu_len)
 			break;
 
-		err = chan->ops->recv(chan->data, chan->sdu);
+		err = chan->ops->recv(chan, chan->sdu);
 
 		if (!err) {
 			/* Reassembly complete */
@@ -5273,7 +5273,7 @@ static inline int l2cap_data_channel(struct l2cap_conn *conn, u16 cid, struct sk
 		if (chan->imtu < skb->len)
 			goto drop;
 
-		if (!chan->ops->recv(chan->data, skb))
+		if (!chan->ops->recv(chan, skb))
 			goto done;
 		break;
 
@@ -5312,7 +5312,7 @@ static inline int l2cap_conless_channel(struct l2cap_conn *conn, __le16 psm, str
 	if (chan->imtu < skb->len)
 		goto drop;
 
-	if (!chan->ops->recv(chan->data, skb))
+	if (!chan->ops->recv(chan, skb))
 		return 0;
 
 drop:
@@ -5338,7 +5338,7 @@ static inline int l2cap_att_channel(struct l2cap_conn *conn, u16 cid,
 	if (chan->imtu < skb->len)
 		goto drop;
 
-	if (!chan->ops->recv(chan->data, skb))
+	if (!chan->ops->recv(chan, skb))
 		return 0;
 
 drop:
