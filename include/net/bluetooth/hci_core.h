@@ -334,6 +334,7 @@ struct hci_conn {
 	void		*l2cap_data;
 	void		*sco_data;
 	void		*smp_conn;
+	struct amp_mgr	*amp_mgr;
 
 	struct bt_sco_parameters	*sco_parameters;
 
