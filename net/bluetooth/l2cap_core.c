@@ -5277,8 +5277,8 @@ drop:
 	kfree_skb(skb);
 }
 
-static inline int l2cap_att_channel(struct l2cap_conn *conn, u16 cid,
-				    struct sk_buff *skb)
+static void l2cap_att_channel(struct l2cap_conn *conn, u16 cid,
+			      struct sk_buff *skb)
 {
 	struct l2cap_chan *chan;
 
@@ -5295,12 +5295,10 @@ static inline int l2cap_att_channel(struct l2cap_conn *conn, u16 cid,
 		goto drop;
 
 	if (!chan->ops->recv(chan, skb))
-		return 0;
+		return;
 
 drop:
 	kfree_skb(skb);
-
-	return 0;
 }
 
 static void l2cap_recv_frame(struct l2cap_conn *conn, struct sk_buff *skb)
