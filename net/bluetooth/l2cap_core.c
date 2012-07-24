@@ -5393,7 +5393,7 @@ int l2cap_connect_ind(struct hci_dev *hdev, bdaddr_t *bdaddr)
 	return exact ? lm1 : lm2;
 }
 
-int l2cap_connect_cfm(struct hci_conn *hcon, u8 status)
+void l2cap_connect_cfm(struct hci_conn *hcon, u8 status)
 {
 	struct l2cap_conn *conn;
 
@@ -5406,7 +5406,6 @@ int l2cap_connect_cfm(struct hci_conn *hcon, u8 status)
 	} else
 		l2cap_conn_del(hcon, bt_to_errno(status));
 
-	return 0;
 }
 
 int l2cap_disconn_ind(struct hci_conn *hcon)
@@ -5420,12 +5419,11 @@ int l2cap_disconn_ind(struct hci_conn *hcon)
 	return conn->disc_reason;
 }
 
-int l2cap_disconn_cfm(struct hci_conn *hcon, u8 reason)
+void l2cap_disconn_cfm(struct hci_conn *hcon, u8 reason)
 {
 	BT_DBG("hcon %p reason %d", hcon, reason);
 
 	l2cap_conn_del(hcon, bt_to_errno(reason));
-	return 0;
 }
 
 static inline void l2cap_check_encryption(struct l2cap_chan *chan, u8 encrypt)
