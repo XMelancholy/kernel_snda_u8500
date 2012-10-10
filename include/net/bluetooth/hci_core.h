@@ -73,6 +73,7 @@ struct discovery_state {
 struct hci_conn_hash {
 	struct list_head list;
 	unsigned int     acl_num;
+	unsigned int     amp_num;
 	unsigned int     sco_num;
 	unsigned int     le_num;
 };
@@ -453,6 +454,9 @@ static inline void hci_conn_hash_add(struct hci_dev *hdev, struct hci_conn *c)
 	case ACL_LINK:
 		h->acl_num++;
 		break;
+	case AMP_LINK:
+		h->amp_num++;
+		break;
 	case LE_LINK:
 		h->le_num++;
 		break;
@@ -474,6 +478,9 @@ static inline void hci_conn_hash_del(struct hci_dev *hdev, struct hci_conn *c)
 	case ACL_LINK:
 		h->acl_num--;
 		break;
+	case AMP_LINK:
+		h->amp_num--;
+		break;
 	case LE_LINK:
 		h->le_num--;
 		break;
@@ -490,6 +497,8 @@ static inline unsigned int hci_conn_num(struct hci_dev *hdev, __u8 type)
 	switch (type) {
 	case ACL_LINK:
 		return h->acl_num;
+	case AMP_LINK:
+		return h->amp_num;
 	case LE_LINK:
 		return h->le_num;
 	case SCO_LINK:
@@ -807,6 +816,10 @@ static inline void hci_proto_disconn_cfm(struct hci_conn *conn, __u8 reason)
 	case SCO_LINK:
 	case ESCO_LINK:
 		sco_disconn_cfm(conn, reason);
+		break;
+
+	/* L2CAP would be handled for BREDR chan */
+	case AMP_LINK:
 		break;
 
 	default:
