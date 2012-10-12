@@ -1237,8 +1237,6 @@ static void l2cap_le_conn_ready(struct l2cap_conn *conn)
 	bacpy(&bt_sk(sk)->src, conn->src);
 	bacpy(&bt_sk(sk)->dst, conn->dst);
 
-	bt_accept_enqueue(parent, sk);
-
 	l2cap_chan_add(conn, chan);
 
 	l2cap_chan_ready(chan);
@@ -3473,8 +3471,6 @@ static void __l2cap_connect(struct l2cap_conn *conn, struct l2cap_cmd_hdr *cmd,
 	bacpy(&bt_sk(sk)->dst, conn->dst);
 	chan->psm  = psm;
 	chan->dcid = scid;
-
-	bt_accept_enqueue(parent, sk);
 
 	__l2cap_chan_add(conn, chan);
 
