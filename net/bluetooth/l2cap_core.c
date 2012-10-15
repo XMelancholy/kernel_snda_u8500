@@ -538,6 +538,7 @@ void l2cap_chan_del(struct l2cap_chan *chan, int err)
 	BT_DBG("chan %p, conn %p, err %d", chan, conn, err);
 
 	if (conn) {
+		struct amp_mgr *mgr = conn->hcon->amp_mgr;
 		/* Delete from channel list */
 		list_del(&chan->list);
 
@@ -547,6 +548,9 @@ void l2cap_chan_del(struct l2cap_chan *chan, int err)
 
 		if (chan->chan_type != L2CAP_CHAN_CONN_FIX_A2MP)
 			hci_conn_put(conn->hcon);
+
+		if (mgr && mgr->bredr_chan == chan)
+			mgr->bredr_chan = NULL;
 	}
 
 	chan->ops->teardown(chan, err);
