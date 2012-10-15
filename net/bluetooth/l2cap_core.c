@@ -5623,6 +5623,10 @@ int l2cap_recv_acldata(struct hci_conn *hcon, struct sk_buff *skb, u16 flags)
 	struct l2cap_hdr *hdr;
 	int len;
 
+	/* For AMP controller do not create l2cap conn */
+	if (!conn && hcon->hdev->dev_type != HCI_BREDR)
+		goto drop;
+
 	if (!conn)
 		conn = l2cap_conn_add(hcon, 0);
 
