@@ -954,6 +954,9 @@ static void l2cap_send_sframe(struct l2cap_chan *chan,
 	if (!control->sframe)
 		return;
 
+	if (__chan_is_moving(chan))
+		return;
+
 	if (test_and_clear_bit(CONN_SEND_FBIT, &chan->conn_state) &&
 	    !control->poll)
 		control->final = 1;
@@ -1824,6 +1827,9 @@ static void l2cap_streaming_send(struct l2cap_chan *chan,
 
 	BT_DBG("chan %p, skbs %p", chan, skbs);
 
+	if (__chan_is_moving(chan))
+		return;
+
 	skb_queue_splice_tail_init(skbs, &chan->tx_q);
 
 	while (!skb_queue_empty(&chan->tx_q)) {
@@ -1864,6 +1870,9 @@ static int l2cap_ertm_send(struct l2cap_chan *chan)
 		return -ENOTCONN;
 
 	if (test_bit(CONN_REMOTE_BUSY, &chan->conn_state))
+		return 0;
+
+	if (__chan_is_moving(chan))
 		return 0;
 
 	while (chan->tx_send_head &&
@@ -1929,6 +1938,9 @@ static void l2cap_ertm_resend(struct l2cap_chan *chan)
 	BT_DBG("chan %p", chan);
 
 	if (test_bit(CONN_REMOTE_BUSY, &chan->conn_state))
+		return;
+
+	if (__chan_is_moving(chan))
 		return;
 
 	while (chan->retrans_list.head != L2CAP_SEQ_LIST_CLEAR) {
