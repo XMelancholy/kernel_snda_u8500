@@ -377,15 +377,15 @@ static u32 get_supported_settings(struct hci_dev *hdev)
 	u32 settings = 0;
 
 	settings |= MGMT_SETTING_POWERED;
-	settings |= MGMT_SETTING_CONNECTABLE;
-	settings |= MGMT_SETTING_FAST_CONNECTABLE;
-	settings |= MGMT_SETTING_DISCOVERABLE;
 	settings |= MGMT_SETTING_PAIRABLE;
 
 	if (lmp_ssp_capable(hdev))
 		settings |= MGMT_SETTING_SSP;
 
 	if (lmp_bredr_capable(hdev)) {
+		settings |= MGMT_SETTING_CONNECTABLE;
+		settings |= MGMT_SETTING_FAST_CONNECTABLE;
+		settings |= MGMT_SETTING_DISCOVERABLE;
 		settings |= MGMT_SETTING_BREDR;
 		settings |= MGMT_SETTING_LINK_SECURITY;
 	}
@@ -868,6 +868,10 @@ static int set_discoverable(struct sock *sk, struct hci_dev *hdev, void *data,
 
 	BT_DBG("request for %s", hdev->name);
 
+	if (!lmp_bredr_capable(hdev))
+		return cmd_status(sk, hdev->id, MGMT_OP_SET_DISCOVERABLE,
+				 MGMT_STATUS_NOT_SUPPORTED);
+
 	timeout = __le16_to_cpu(cp->timeout);
 	if (!cp->val && timeout > 0)
 		return cmd_status(sk, hdev->id, MGMT_OP_SET_DISCOVERABLE,
@@ -962,6 +966,10 @@ static int set_connectable(struct sock *sk, struct hci_dev *hdev, void *data,
 	int err;
 
 	BT_DBG("request for %s", hdev->name);
+
+	if (!lmp_bredr_capable(hdev))
+		return cmd_status(sk, hdev->id, MGMT_OP_SET_CONNECTABLE,
+				  MGMT_STATUS_NOT_SUPPORTED);
 
 	hci_dev_lock(hdev);
 
@@ -1060,6 +1068,10 @@ static int set_link_security(struct sock *sk, struct hci_dev *hdev, void *data,
 	int err;
 
 	BT_DBG("request for %s", hdev->name);
+
+	if (!lmp_bredr_capable(hdev))
+		return cmd_status(sk, hdev->id, MGMT_OP_SET_LINK_SECURITY,
+				  MGMT_STATUS_NOT_SUPPORTED);
 
 	hci_dev_lock(hdev);
 
@@ -2595,6 +2607,10 @@ static int set_fast_connectable(struct sock *sk, struct hci_dev *hdev,
 	int err;
 
 	BT_DBG("%s", hdev->name);
+
+	if (!lmp_bredr_capable(hdev))
+		return cmd_status(sk, hdev->id, MGMT_OP_SET_FAST_CONNECTABLE,
+				  MGMT_STATUS_NOT_SUPPORTED);
 
 	if (!hdev_is_powered(hdev))
 		return cmd_status(sk, hdev->id, MGMT_OP_SET_FAST_CONNECTABLE,
