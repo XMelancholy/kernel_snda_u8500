@@ -3953,7 +3953,7 @@ static inline int l2cap_config_req(struct l2cap_conn *conn,
 		/* check compatibility */
 
 		/* Send rsp for BR/EDR channel */
-		if (!chan->ctrl_id)
+		if (!chan->hs_hcon)
 			l2cap_send_efs_conf_rsp(chan, rsp, cmd->ident, flags);
 		else
 			chan->ident = cmd->ident;
@@ -4007,7 +4007,7 @@ static inline int l2cap_config_rsp(struct l2cap_conn *conn,
 				goto done;
 			}
 
-			if (!chan->ctrl_id) {
+			if (!chan->hs_hcon) {
 				l2cap_send_efs_conf_rsp(chan, buf, cmd->ident,
 							0);
 			} else {
