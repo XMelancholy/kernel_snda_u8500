@@ -730,6 +730,23 @@ static int sco_sock_setsockopt(struct socket *sock, int level, int optname, char
 		sco_pi(sk)->no_autoretry = opt;
 		break;
 
+	case BT_DEFER_SETUP:
+		if (sk->sk_state != BT_BOUND && sk->sk_state != BT_LISTEN) {
+			err = -EINVAL;
+			break;
+		}
+
+		if (get_user(opt, (u32 __user *) optval)) {
+			err = -EFAULT;
+			break;
+		}
+
+		if (opt)
+			set_bit(BT_SK_DEFER_SETUP, &bt_sk(sk)->flags);
+		else
+			clear_bit(BT_SK_DEFER_SETUP, &bt_sk(sk)->flags);
+		break;
+
 	default:
 		err = -ENOPROTOOPT;
 		break;
@@ -827,6 +844,17 @@ static int sco_sock_getsockopt(struct socket *sock, int level, int optname, char
 	case BT_NO_AUTORETRY:
 		if (put_user(sco_pi(sk)->no_autoretry, (u32 __user *) optval))
 			err = -EFAULT;
+
+	case BT_DEFER_SETUP:
+		if (sk->sk_state != BT_BOUND && sk->sk_state != BT_LISTEN) {
+			err = -EINVAL;
+			break;
+		}
+
+		if (put_user(test_bit(BT_SK_DEFER_SETUP, &bt_sk(sk)->flags),
+			     (u32 __user *) optval))
+			err = -EFAULT;
+
 		break;
 
 	default:
