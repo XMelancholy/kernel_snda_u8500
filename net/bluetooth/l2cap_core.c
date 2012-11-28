@@ -53,8 +53,7 @@ static struct sk_buff *l2cap_build_cmd(struct l2cap_conn *conn,
 static void l2cap_send_cmd(struct l2cap_conn *conn, u8 ident, u8 code, u16 len,
 			   void *data);
 static int l2cap_build_conf_req(struct l2cap_chan *chan, void *data);
-static void l2cap_send_disconn_req(struct l2cap_conn *conn,
-				   struct l2cap_chan *chan, int err);
+static void l2cap_send_disconn_req(struct l2cap_chan *chan, int err);
 
 static void l2cap_tx(struct l2cap_chan *chan, struct l2cap_ctrl *control,
 		     struct sk_buff_head *skbs, u8 event);
@@ -639,7 +638,7 @@ void l2cap_chan_close(struct l2cap_chan *chan, int reason)
 		if (chan->chan_type == L2CAP_CHAN_CONN_ORIENTED &&
 		    conn->hcon->type == ACL_LINK) {
 			__set_chan_timer(chan, sk->sk_sndtimeo);
-			l2cap_send_disconn_req(conn, chan, reason);
+			l2cap_send_disconn_req(chan, reason);
 		} else
 			l2cap_chan_del(chan, reason);
 		break;
@@ -1187,10 +1186,10 @@ static inline int l2cap_mode_supported(__u8 mode, __u32 feat_mask)
 	}
 }
 
-static void l2cap_send_disconn_req(struct l2cap_conn *conn,
-				   struct l2cap_chan *chan, int err)
+static void l2cap_send_disconn_req(struct l2cap_chan *chan, int err)
 {
 	struct sock *sk = chan->sk;
+	struct l2cap_conn *conn = chan->conn;
 	struct l2cap_disconn_req req;
 
 	if (!conn)
@@ -1973,7 +1972,7 @@ static void l2cap_ertm_resend(struct l2cap_chan *chan)
 		if (chan->max_tx != 0 &&
 		    bt_cb(skb)->control.retries > chan->max_tx) {
 			BT_DBG("Retry limit exceeded (%d)", chan->max_tx);
-			l2cap_send_disconn_req(chan->conn, chan, ECONNRESET);
+			l2cap_send_disconn_req(chan, ECONNRESET);
 			l2cap_seq_list_clear(&chan->retrans_list);
 			break;
 		}
@@ -2679,7 +2678,7 @@ static void l2cap_tx_state_wait_f(struct l2cap_chan *chan,
 			__set_monitor_timer(chan);
 			chan->retry_count++;
 		} else {
-			l2cap_send_disconn_req(chan->conn, chan, ECONNABORTED);
+			l2cap_send_disconn_req(chan, ECONNABORTED);
 		}
 		break;
 	default:
@@ -3909,7 +3908,7 @@ static inline int l2cap_config_req(struct l2cap_conn *conn,
 	/* Complete config. */
 	len = l2cap_parse_conf_req(chan, rsp);
 	if (len < 0) {
-		l2cap_send_disconn_req(conn, chan, ECONNRESET);
+		l2cap_send_disconn_req(chan, ECONNRESET);
 		goto unlock;
 	}
 
@@ -3931,7 +3930,7 @@ static inline int l2cap_config_req(struct l2cap_conn *conn,
 			err = l2cap_ertm_init(chan);
 
 		if (err < 0)
-			l2cap_send_disconn_req(chan->conn, chan, -err);
+			l2cap_send_disconn_req(chan, -err);
 		else
 			l2cap_chan_ready(chan);
 
@@ -4003,7 +4002,7 @@ static inline int l2cap_config_rsp(struct l2cap_conn *conn,
 			len = l2cap_parse_conf_rsp(chan, rsp->data, len,
 						   buf, &result);
 			if (len < 0) {
-				l2cap_send_disconn_req(conn, chan, ECONNRESET);
+				l2cap_send_disconn_req(chan, ECONNRESET);
 				goto done;
 			}
 
@@ -4024,7 +4023,7 @@ static inline int l2cap_config_rsp(struct l2cap_conn *conn,
 			char req[64];
 
 			if (len > sizeof(req) - sizeof(struct l2cap_conf_req)) {
-				l2cap_send_disconn_req(conn, chan, ECONNRESET);
+				l2cap_send_disconn_req(chan, ECONNRESET);
 				goto done;
 			}
 
@@ -4033,7 +4032,7 @@ static inline int l2cap_config_rsp(struct l2cap_conn *conn,
 			len = l2cap_parse_conf_rsp(chan, rsp->data, len,
 						   req, &result);
 			if (len < 0) {
-				l2cap_send_disconn_req(conn, chan, ECONNRESET);
+				l2cap_send_disconn_req(chan, ECONNRESET);
 				goto done;
 			}
 
@@ -4049,7 +4048,7 @@ static inline int l2cap_config_rsp(struct l2cap_conn *conn,
 		l2cap_chan_set_err(chan, ECONNRESET);
 
 		__set_chan_timer(chan, L2CAP_DISC_REJ_TIMEOUT);
-		l2cap_send_disconn_req(conn, chan, ECONNRESET);
+		l2cap_send_disconn_req(chan, ECONNRESET);
 		goto done;
 	}
 
@@ -4066,7 +4065,7 @@ static inline int l2cap_config_rsp(struct l2cap_conn *conn,
 			err = l2cap_ertm_init(chan);
 
 		if (err < 0)
-			l2cap_send_disconn_req(chan->conn, chan, -err);
+			l2cap_send_disconn_req(chan, -err);
 		else
 			l2cap_chan_ready(chan);
 	}
@@ -4444,7 +4443,7 @@ static void l2cap_logical_fail(struct l2cap_chan *chan)
 	/* Logical link setup failed */
 	if (chan->state != BT_CONNECTED) {
 		/* Create channel failure, disconnect */
-		l2cap_send_disconn_req(chan->conn, chan, ECONNRESET);
+		l2cap_send_disconn_req(chan, ECONNRESET);
 		return;
 	}
 
@@ -4487,7 +4486,7 @@ static void l2cap_logical_finish_create(struct l2cap_chan *chan,
 
 		err = l2cap_ertm_init(chan);
 		if (err < 0)
-			l2cap_send_disconn_req(chan->conn, chan, -err);
+			l2cap_send_disconn_req(chan, -err);
 		else
 			l2cap_chan_ready(chan);
 	}
@@ -5452,7 +5451,7 @@ static void l2cap_handle_srej(struct l2cap_chan *chan,
 
 	if (control->reqseq == chan->next_tx_seq) {
 		BT_DBG("Invalid reqseq %d, disconnecting", control->reqseq);
-		l2cap_send_disconn_req(chan->conn, chan, ECONNRESET);
+		l2cap_send_disconn_req(chan, ECONNRESET);
 		return;
 	}
 
@@ -5466,7 +5465,7 @@ static void l2cap_handle_srej(struct l2cap_chan *chan,
 
 	if (chan->max_tx != 0 && bt_cb(skb)->control.retries >= chan->max_tx) {
 		BT_DBG("Retry limit exceeded (%d)", chan->max_tx);
-		l2cap_send_disconn_req(chan->conn, chan, ECONNRESET);
+		l2cap_send_disconn_req(chan, ECONNRESET);
 		return;
 	}
 
@@ -5510,7 +5509,7 @@ static void l2cap_handle_rej(struct l2cap_chan *chan,
 
 	if (control->reqseq == chan->next_tx_seq) {
 		BT_DBG("Invalid reqseq %d, disconnecting", control->reqseq);
-		l2cap_send_disconn_req(chan->conn, chan, ECONNRESET);
+		l2cap_send_disconn_req(chan, ECONNRESET);
 		return;
 	}
 
@@ -5519,7 +5518,7 @@ static void l2cap_handle_rej(struct l2cap_chan *chan,
 	if (chan->max_tx && skb &&
 	    bt_cb(skb)->control.retries >= chan->max_tx) {
 		BT_DBG("Retry limit exceeded (%d)", chan->max_tx);
-		l2cap_send_disconn_req(chan->conn, chan, ECONNRESET);
+		l2cap_send_disconn_req(chan, ECONNRESET);
 		return;
 	}
 
@@ -5703,8 +5702,7 @@ static int l2cap_rx_state_recv(struct l2cap_chan *chan,
 			break;
 		case L2CAP_TXSEQ_INVALID:
 		default:
-			l2cap_send_disconn_req(chan->conn, chan,
-					       ECONNRESET);
+			l2cap_send_disconn_req(chan, ECONNRESET);
 			break;
 		}
 		break;
@@ -5837,8 +5835,7 @@ static int l2cap_rx_state_srej_sent(struct l2cap_chan *chan,
 			break;
 		case L2CAP_TXSEQ_INVALID:
 		default:
-			l2cap_send_disconn_req(chan->conn, chan,
-					       ECONNRESET);
+			l2cap_send_disconn_req(chan, ECONNRESET);
 			break;
 		}
 		break;
@@ -6033,7 +6030,7 @@ static int l2cap_rx(struct l2cap_chan *chan, struct l2cap_ctrl *control,
 		BT_DBG("Invalid reqseq %d (next_tx_seq %d, expected_ack_seq %d",
 		       control->reqseq, chan->next_tx_seq,
 		       chan->expected_ack_seq);
-		l2cap_send_disconn_req(chan->conn, chan, ECONNRESET);
+		l2cap_send_disconn_req(chan, ECONNRESET);
 	}
 
 	return err;
@@ -6102,7 +6099,7 @@ static int l2cap_data_rcv(struct l2cap_chan *chan, struct sk_buff *skb)
 		len -= L2CAP_FCS_SIZE;
 
 	if (len > chan->mps) {
-		l2cap_send_disconn_req(chan->conn, chan, ECONNRESET);
+		l2cap_send_disconn_req(chan, ECONNRESET);
 		goto drop;
 	}
 
@@ -6127,8 +6124,7 @@ static int l2cap_data_rcv(struct l2cap_chan *chan, struct sk_buff *skb)
 		}
 
 		if (err)
-			l2cap_send_disconn_req(chan->conn, chan,
-					       ECONNRESET);
+			l2cap_send_disconn_req(chan, ECONNRESET);
 	} else {
 		const u8 rx_func_to_event[4] = {
 			L2CAP_EV_RECV_RR, L2CAP_EV_RECV_REJ,
@@ -6145,7 +6141,7 @@ static int l2cap_data_rcv(struct l2cap_chan *chan, struct sk_buff *skb)
 
 		if (len != 0) {
 			BT_ERR("Trailing bytes: %d in sframe", len);
-			l2cap_send_disconn_req(chan->conn, chan, ECONNRESET);
+			l2cap_send_disconn_req(chan, ECONNRESET);
 			goto drop;
 		}
 
@@ -6156,7 +6152,7 @@ static int l2cap_data_rcv(struct l2cap_chan *chan, struct sk_buff *skb)
 
 		event = rx_func_to_event[control->super];
 		if (l2cap_rx(chan, control, skb, event))
-			l2cap_send_disconn_req(chan->conn, chan, ECONNRESET);
+			l2cap_send_disconn_req(chan, ECONNRESET);
 	}
 
 	return 0;
