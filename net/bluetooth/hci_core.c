@@ -1150,7 +1150,8 @@ static void hci_power_on(struct work_struct *work)
 	}
 
 	if (test_bit(HCI_AUTO_OFF, &hdev->dev_flags))
-		schedule_delayed_work(&hdev->power_off, HCI_AUTO_OFF_TIMEOUT);
+		queue_delayed_work(hdev->req_workqueue, &hdev->power_off,
+				   HCI_AUTO_OFF_TIMEOUT);
 
 	if (test_and_clear_bit(HCI_SETUP, &hdev->dev_flags))
 		mgmt_index_added(hdev);
@@ -1834,7 +1835,7 @@ int hci_register_dev(struct hci_dev *hdev)
 	hci_notify(hdev, HCI_DEV_REG);
 	hci_dev_hold(hdev);
 
-	schedule_work(&hdev->power_on);
+	queue_work(hdev->req_workqueue, &hdev->power_on);
 
 	return id;
 
