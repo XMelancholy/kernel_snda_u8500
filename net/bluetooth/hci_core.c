@@ -1803,6 +1803,15 @@ int hci_register_dev(struct hci_dev *hdev)
 		goto err;
 	}
 
+	hdev->req_workqueue = alloc_workqueue(hdev->name,
+					      WQ_HIGHPRI | WQ_UNBOUND |
+					      WQ_MEM_RECLAIM, 1);
+	if (!hdev->req_workqueue) {
+		destroy_workqueue(hdev->workqueue);
+		error = -ENOMEM;
+		goto err;
+	}
+
 	error = hci_add_sysfs(hdev);
 	if (error < 0)
 		goto err_wqueue;
@@ -1831,6 +1840,7 @@ int hci_register_dev(struct hci_dev *hdev)
 
 err_wqueue:
 	destroy_workqueue(hdev->workqueue);
+	destroy_workqueue(hdev->req_workqueue);
 err:
 	ida_simple_remove(&hci_index_ida, hdev->id);
 	write_lock(&hci_dev_list_lock);
@@ -1884,6 +1894,7 @@ void hci_unregister_dev(struct hci_dev *hdev)
 	hci_del_sysfs(hdev);
 
 	destroy_workqueue(hdev->workqueue);
+	destroy_workqueue(hdev->req_workqueue);
 
 	hci_dev_lock(hdev);
 	hci_blacklist_clear(hdev);
