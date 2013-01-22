@@ -1077,6 +1077,7 @@ struct hci_rp_le_ltk_neg_reply {
 	__le16	handle;
 } __packed;
 
+
 #define HCI_OP_VS_EXT_FLOW_SPECIFICATION		0xFCD5
 struct vs_ext_flow_spec_cp {
 	__le16 handle;
@@ -1085,6 +1086,12 @@ struct vs_ext_flow_spec_cp {
 	__le16 in_service_window;
 	__u8 cqae;
 	__le16 packet_size;
+} __packed;
+
+#define HCI_OP_LE_READ_SUPPORTED_STATES	0x201c
+struct hci_rp_le_read_supported_states {
+	__u8	status;
+	__u8	le_states[8];
 } __packed;
 
 /* ---- HCI Events ---- */
