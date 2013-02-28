@@ -658,9 +658,9 @@ static struct rfcomm_session *rfcomm_session_close(struct rfcomm_session *s,
 	struct rfcomm_dlc *d;
 	struct list_head *p, *n;
 
-	BT_DBG("session %p state %ld err %d", s, s->state, err);
-
 	s->state = BT_CLOSED;
+
+	BT_DBG("session %p state %ld err %d", s, s->state, err);
 
 	/* Close all dlcs */
 	list_for_each_safe(p, n, &s->dlcs) {
@@ -1193,7 +1193,6 @@ static struct rfcomm_session *rfcomm_recv_dm(struct rfcomm_session *s, u8 dlci)
 		else
 			err = ECONNRESET;
 
-		s->state = BT_CLOSED;
 		s = rfcomm_session_close(s, err);
 	}
 	return s;
@@ -1229,7 +1228,6 @@ static struct rfcomm_session *rfcomm_recv_disc(struct rfcomm_session *s,
 		else
 			err = ECONNRESET;
 
-		s->state = BT_CLOSED;
 		s = rfcomm_session_close(s, err);
 	}
 	return s;
@@ -1926,7 +1924,6 @@ static struct rfcomm_session *rfcomm_check_connection(struct rfcomm_session *s)
 		break;
 
 	case BT_CLOSED:
-		s->state = BT_CLOSED;
 		s = rfcomm_session_close(s, sk->sk_err);
 		break;
 	}
