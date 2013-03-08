@@ -1050,6 +1050,11 @@ int hci_unregister_cb(struct hci_cb *hcb);
 struct hci_request {
 	struct hci_dev		*hdev;
 	struct sk_buff_head	cmd_q;
+
+	/* If something goes wrong when building the HCI request, the error
+	 * value is stored in this field.
+	 */
+	int			err;
 };
 
 void hci_req_init(struct hci_request *req, struct hci_dev *hdev);
