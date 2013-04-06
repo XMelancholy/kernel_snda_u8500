@@ -1190,7 +1190,7 @@ static void hci_cs_auth_requested(struct hci_dev *hdev, __u8 status)
 	if (conn) {
 		if (conn->state == BT_CONFIG) {
 			hci_proto_connect_cfm(conn, status);
-			hci_conn_put(conn);
+			hci_conn_drop(conn);
 		}
 	}
 
@@ -1217,7 +1217,7 @@ static void hci_cs_set_conn_encrypt(struct hci_dev *hdev, __u8 status)
 	if (conn) {
 		if (conn->state == BT_CONFIG) {
 			hci_proto_connect_cfm(conn, status);
-			hci_conn_put(conn);
+			hci_conn_drop(conn);
 		}
 	}
 
@@ -1379,7 +1379,7 @@ static void hci_cs_read_remote_features(struct hci_dev *hdev, __u8 status)
 	if (conn) {
 		if (conn->state == BT_CONFIG) {
 			hci_proto_connect_cfm(conn, status);
-			hci_conn_put(conn);
+			hci_conn_drop(conn);
 		}
 	}
 
@@ -1406,7 +1406,7 @@ static void hci_cs_read_remote_ext_features(struct hci_dev *hdev, __u8 status)
 	if (conn) {
 		if (conn->state == BT_CONFIG) {
 			hci_proto_connect_cfm(conn, status);
-			hci_conn_put(conn);
+			hci_conn_drop(conn);
 		}
 	}
 
@@ -1874,7 +1874,7 @@ static void hci_conn_request_evt(struct hci_dev *hdev, struct sk_buff *skb)
 		} else {
 			conn->state = BT_CONNECT2;
 			hci_proto_connect_cfm(conn, 0);
-			hci_conn_put(conn);
+			hci_conn_drop(conn);
 		}
 	} else {
 		/* Connection rejected */
@@ -1981,14 +1981,14 @@ static void hci_auth_complete_evt(struct hci_dev *hdev, struct sk_buff *skb)
 		} else {
 			conn->state = BT_CONNECTED;
 			hci_proto_connect_cfm(conn, ev->status);
-			hci_conn_put(conn);
+			hci_conn_drop(conn);
 		}
 	} else {
 		hci_auth_cfm(conn, ev->status);
 
 		hci_conn_hold(conn);
 		conn->disc_timeout = HCI_DISCONN_TIMEOUT;
-		hci_conn_put(conn);
+		hci_conn_drop(conn);
 	}
 
 	if (test_bit(HCI_CONN_ENCRYPT_PEND, &conn->flags)) {
@@ -2072,7 +2072,7 @@ static void hci_encrypt_change_evt(struct hci_dev *hdev, struct sk_buff *skb)
 
 		if (ev->status && conn->state == BT_CONNECTED) {
 			hci_disconnect(conn, HCI_ERROR_AUTH_FAILURE);
-			hci_conn_put(conn);
+			hci_conn_drop(conn);
 			goto unlock;
 		}
 
@@ -2081,7 +2081,7 @@ static void hci_encrypt_change_evt(struct hci_dev *hdev, struct sk_buff *skb)
 				conn->state = BT_CONNECTED;
 
 			hci_proto_connect_cfm(conn, ev->status);
-			hci_conn_put(conn);
+			hci_conn_drop(conn);
 		} else
 			hci_encrypt_cfm(conn, ev->status, ev->encrypt);
 	}
@@ -2156,7 +2156,7 @@ static void hci_remote_features_evt(struct hci_dev *hdev,
 	if (!hci_outgoing_auth_needed(hdev, conn)) {
 		conn->state = BT_CONNECTED;
 		hci_proto_connect_cfm(conn, ev->status);
-		hci_conn_put(conn);
+		hci_conn_drop(conn);
 	}
 
 unlock:
@@ -2696,7 +2696,7 @@ static void hci_pin_code_request_evt(struct hci_dev *hdev, struct sk_buff *skb)
 	if (conn->state == BT_CONNECTED) {
 		hci_conn_hold(conn);
 		conn->disc_timeout = HCI_PAIRING_TIMEOUT;
-		hci_conn_put(conn);
+		hci_conn_drop(conn);
 	}
 
 	if (!test_bit(HCI_PAIRABLE, &hdev->dev_flags))
@@ -2799,7 +2799,7 @@ static void hci_link_key_notify_evt(struct hci_dev *hdev, struct sk_buff *skb)
 		if (ev->key_type != HCI_LK_CHANGED_COMBINATION)
 			conn->key_type = ev->key_type;
 
-		hci_conn_put(conn);
+		hci_conn_drop(conn);
 	}
 
 	if (test_bit(HCI_LINK_KEYS, &hdev->dev_flags))
@@ -2968,7 +2968,7 @@ static void hci_remote_ext_features_evt(struct hci_dev *hdev,
 	if (!hci_outgoing_auth_needed(hdev, conn)) {
 		conn->state = BT_CONNECTED;
 		hci_proto_connect_cfm(conn, ev->status);
-		hci_conn_put(conn);
+		hci_conn_drop(conn);
 	}
 
 unlock:
@@ -3101,7 +3101,7 @@ static void hci_key_refresh_complete_evt(struct hci_dev *hdev,
 
 	if (ev->status && conn->state == BT_CONNECTED) {
 		hci_disconnect(conn, HCI_ERROR_AUTH_FAILURE);
-		hci_conn_put(conn);
+		hci_conn_drop(conn);
 		goto unlock;
 	}
 
@@ -3110,13 +3110,13 @@ static void hci_key_refresh_complete_evt(struct hci_dev *hdev,
 			conn->state = BT_CONNECTED;
 
 		hci_proto_connect_cfm(conn, ev->status);
-		hci_conn_put(conn);
+		hci_conn_drop(conn);
 	} else {
 		hci_auth_cfm(conn, ev->status);
 
 		hci_conn_hold(conn);
 		conn->disc_timeout = HCI_DISCONN_TIMEOUT;
-		hci_conn_put(conn);
+		hci_conn_drop(conn);
 	}
 
 unlock:
@@ -3377,7 +3377,7 @@ static void hci_simple_pair_complete_evt(struct hci_dev *hdev,
 		mgmt_auth_failed(hdev, &conn->dst, conn->type, conn->dst_type,
 				 ev->status);
 
-	hci_conn_put(conn);
+	hci_conn_drop(conn);
 
 unlock:
 	hci_dev_unlock(hdev);
@@ -3465,7 +3465,7 @@ static void hci_phy_link_complete_evt(struct hci_dev *hdev,
 
 	hci_conn_hold(hcon);
 	hcon->disc_timeout = HCI_DISCONN_TIMEOUT;
-	hci_conn_put(hcon);
+	hci_conn_drop(hcon);
 
 	hci_conn_hold_device(hcon);
 	hci_conn_add_sysfs(hcon);

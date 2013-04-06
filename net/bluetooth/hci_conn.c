@@ -468,7 +468,7 @@ int hci_conn_del(struct hci_conn *conn)
 		struct hci_conn *acl = conn->link;
 		if (acl) {
 			acl->link = NULL;
-			hci_conn_put(acl);
+			hci_conn_drop(acl);
 		}
 	}
 
@@ -603,7 +603,7 @@ static struct hci_conn *hci_connect_sco(struct hci_dev *hdev, int type,
 	if (!sco) {
 		sco = hci_conn_add(hdev, type, dst);
 		if (!sco) {
-			hci_conn_put(acl);
+			hci_conn_drop(acl);
 			return ERR_PTR(-ENOMEM);
 		}
 	}
@@ -1040,7 +1040,7 @@ void hci_chan_del(struct hci_chan *chan)
 
 	synchronize_rcu();
 
-	hci_conn_put(conn);
+	hci_conn_drop(conn);
 
 	skb_queue_purge(&chan->data_q);
 	kfree(chan);
