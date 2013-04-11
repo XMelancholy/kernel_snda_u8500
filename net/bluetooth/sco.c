@@ -504,7 +504,7 @@ static int sco_sock_connect(struct socket *sock, struct sockaddr *addr, int alen
 {
 	struct sock *sk = sock->sk;
 	struct sockaddr_sco sa;
-	int len, err = 0;
+	int len, err;
 
 	BT_DBG("sk %p", sk);
 
