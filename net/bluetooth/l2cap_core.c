@@ -3855,10 +3855,13 @@ sendresp:
 }
 
 static int l2cap_connect_req(struct l2cap_conn *conn,
-			     struct l2cap_cmd_hdr *cmd, u8 *data)
+			     struct l2cap_cmd_hdr *cmd, u16 cmd_len, u8 *data)
 {
 	struct hci_dev *hdev = conn->hcon->hdev;
 	struct hci_conn *hcon = conn->hcon;
+
+	if (cmd_len < sizeof(struct l2cap_conn_req))
+		return -EPROTO;
 
 	hci_dev_lock(hdev);
 	if (test_bit(HCI_MGMT, &hdev->dev_flags) &&
@@ -3873,7 +3876,8 @@ static int l2cap_connect_req(struct l2cap_conn *conn,
 }
 
 static int l2cap_connect_create_rsp(struct l2cap_conn *conn,
-				    struct l2cap_cmd_hdr *cmd, u8 *data)
+				    struct l2cap_cmd_hdr *cmd, u16 cmd_len,
+				    u8 *data)
 {
 	struct l2cap_conn_rsp *rsp = (struct l2cap_conn_rsp *) data;
 	u16 scid, dcid, result, status;
@@ -4091,7 +4095,7 @@ static inline int l2cap_config_rsp(struct l2cap_conn *conn,
 	struct l2cap_conf_rsp *rsp = (struct l2cap_conf_rsp *)data;
 	u16 scid, flags, result;
 	struct l2cap_chan *chan;
-	int len = le16_to_cpu(cmd->len) - sizeof(*rsp);
+	int len = cmd_len - sizeof(*rsp);
 	int err = 0;
 
 	if (cmd_len < sizeof(*rsp))
@@ -5225,7 +5229,7 @@ static inline int l2cap_bredr_sig_cmd(struct l2cap_conn *conn,
 
 	case L2CAP_CONN_RSP:
 	case L2CAP_CREATE_CHAN_RSP:
-		err = l2cap_connect_create_rsp(conn, cmd, data);
+		err = l2cap_connect_create_rsp(conn, cmd, cmd_len, data);
 		break;
 
 	case L2CAP_CONF_REQ:
