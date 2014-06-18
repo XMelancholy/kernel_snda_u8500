@@ -1601,8 +1601,8 @@ CONFIG_HSI_BOARDINFO=y
 #
 # HSI clients
 #
-CONFIG_HSI_CHAR=m
-CONFIG_HSI_CAIF=m
+# CONFIG_HSI_CHAR is not set
+# CONFIG_HSI_CAIF is not set
 
 #
 # HSI controllers
