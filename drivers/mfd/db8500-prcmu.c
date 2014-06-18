@@ -675,6 +675,7 @@ static enum arm_opp db8500_idx2opp[] = {
 	ARM_EXTCLK,
 	ARM_50_OPP,
 	ARM_100_OPP,
+	ARM_100_OPP,
 	ARM_MAX_OPP
 };
 
@@ -3192,12 +3193,12 @@ static void  db8500_prcmu_update_freq(struct cpufreq_frequency_table *ft)
 	case PRCMU_FW_PROJECT_U9500:
 	case PRCMU_FW_PROJECT_U8420:
 	case PRCMU_FW_PROJECT_A9420:
-		freq_table[3].frequency = 1000000;
+		freq_table[4].frequency = 1000000;
 		break;
 	case PRCMU_FW_PROJECT_U8500_C2:
 	case PRCMU_FW_PROJECT_U8500_MBL:
 	case PRCMU_FW_PROJECT_U8520:
-		freq_table[3].frequency = 1150000;
+		freq_table[4].frequency = 1150000;
 		break;
 	default:
 		break;
