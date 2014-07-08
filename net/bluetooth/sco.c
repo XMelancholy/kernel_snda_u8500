@@ -394,6 +394,7 @@ static void sco_sock_init(struct sock *sk, struct sock *parent)
 
 	if (parent)
 		sk->sk_type = parent->sk_type;
+		bt_sk(sk)->flags = bt_sk(parent)->flags;
 
 	pi->param.tx_bandwidth = 8000;
 	pi->param.rx_bandwidth = 8000;
@@ -406,9 +407,6 @@ static void sco_sock_init(struct sock *sk, struct sock *parent)
 
 	pi->param.retrans_effort = HCI_SYNC_RETRANS_EFFORT_DONTCARE;
 	pi->param.pkt_type       = ALL_ESCO_MASK;
-		bt_sk(sk)->flags = bt_sk(parent)->flags;
-		security_sk_clone(parent, sk);
-	}
 }
 
 static struct proto sco_proto = {
@@ -464,20 +462,16 @@ static int sco_sock_create(struct net *net, struct socket *sock, int protocol,
 	return 0;
 }
 
-static int sco_sock_bind(struct socket *sock, struct sockaddr *addr, int alen)
+static int sco_sock_bind(struct socket *sock, struct sockaddr *addr, int addr_len)
 {
-	struct sockaddr_sco sa;
+	struct sockaddr_sco *sa = (struct sockaddr_sco *) addr;
 	struct sock *sk = sock->sk;
-	int len, err = 0;
+	int err = 0;
 
 	BT_DBG("sk %p %pMR", sk, &sa->sco_bdaddr);
 
 	if (!addr || addr->sa_family != AF_BLUETOOTH)
 		return -EINVAL;
-
-	memset(&sa, 0, sizeof(sa));
-	len = min_t(unsigned int, sizeof(sa), alen);
-	memcpy(&sa, addr, len);
 
 	lock_sock(sk);
 
@@ -502,33 +496,26 @@ done:
 
 static int sco_sock_connect(struct socket *sock, struct sockaddr *addr, int alen, int flags)
 {
+	struct sockaddr_sco *sa = (struct sockaddr_sco *) addr;
 	struct sock *sk = sock->sk;
-	struct sockaddr_sco sa;
-	int len, err;
+	int err;
 
 	BT_DBG("sk %p", sk);
 
-	if (!addr || addr->sa_family != AF_BLUETOOTH)
+	if (alen < sizeof(struct sockaddr_sco) ||
+	    addr->sa_family != AF_BLUETOOTH)
 		return -EINVAL;
 
-	memset(&sa, 0, sizeof(sa));
-	len = min_t(unsigned int, sizeof(sa), alen);
-	memcpy(&sa, addr, len);
+	if (sk->sk_state != BT_OPEN && sk->sk_state != BT_BOUND)
+		return -EBADFD;
+
+	if (sk->sk_type != SOCK_SEQPACKET)
+		return -EINVAL;
 
 	lock_sock(sk);
 
-	if (sk->sk_type != SOCK_SEQPACKET) {
-		err = -EINVAL;
-		goto done;
-	}
-
-	if (sk->sk_state != BT_OPEN && sk->sk_state != BT_BOUND) {
-		err = -EBADFD;
-		goto done;
-	}
-
 	/* Set destination address and psm */
-	bacpy(&bt_sk(sk)->dst, &sa.sco_bdaddr);
+	bacpy(&bt_sk(sk)->dst, &sa->sco_bdaddr);
 
 	err = sco_connect(sk);
 	if (err)

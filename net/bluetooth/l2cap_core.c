@@ -3727,14 +3727,8 @@ static struct l2cap_chan *l2cap_connect(struct l2cap_conn *conn,
 	struct sock *parent, *sk = NULL;
 	int result, status = L2CAP_CS_NO_INFO;
 
-	u16 dcid = 0, scid;
-	__le16 psm;
-
-	if (cmd_len < sizeof(struct l2cap_conn_req))
-		return -EPROTO;
-
-	scid = __le16_to_cpu(req->scid);
-	psm = req->psm;
+	u16 dcid = 0, scid = __le16_to_cpu(req->scid);
+	__le16 psm = req->psm;
 
 	BT_DBG("psm 0x%2.2x scid 0x%4.4x", __le16_to_cpu(psm), scid);
 
@@ -5121,7 +5115,7 @@ static inline int l2cap_move_channel_confirm_rsp(struct l2cap_conn *conn,
 	struct l2cap_chan *chan;
 	u16 icid;
 
-	if (cmd_len < sizeof(*rsp))
+	if (cmd_len != sizeof(*rsp))
 		return -EPROTO;
 
 	icid = le16_to_cpu(rsp->icid);

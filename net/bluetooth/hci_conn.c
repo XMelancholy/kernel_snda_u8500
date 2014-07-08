@@ -373,8 +373,7 @@ static void hci_conn_auto_accept(unsigned long arg)
 		     &conn->dst);
 }
 
-struct hci_conn *hci_conn_add(struct hci_dev *hdev, int type,
-					 bdaddr_t *dst)
+struct hci_conn *hci_conn_add(struct hci_dev *hdev, int type, bdaddr_t *dst)
 {
 	struct hci_conn *conn;
 
@@ -404,12 +403,13 @@ struct hci_conn *hci_conn_add(struct hci_dev *hdev, int type,
 		break;
 	case SCO_LINK:
 		if (lmp_esco_capable(hdev))
-			conn->pkt_type = hdev->esco_type & SCO_ESCO_MASK;
+			conn->pkt_type = (hdev->esco_type & SCO_ESCO_MASK) |
+					(hdev->esco_type & EDR_ESCO_MASK);
 		else
 			conn->pkt_type = hdev->pkt_type & SCO_PTYPE_MASK;
 		break;
 	case ESCO_LINK:
-		conn->pkt_type = hdev->esco_type;
+		conn->pkt_type = hdev->esco_type & ~EDR_ESCO_MASK;
 		break;
 	}
 
@@ -571,11 +571,8 @@ static struct hci_conn *hci_connect_le(struct hci_dev *hdev, bdaddr_t *dst,
 	return le;
 }
 
-/* Create SCO, ACL or LE connection.
- * Device _must_ be locked */
-struct hci_conn *hci_connect(struct hci_dev *hdev, int type, bdaddr_t *dst,
-				__u8 dst_type, __u8 sec_level, __u8 auth_type,
-				struct bt_sco_parameters *sco_parameters)
+static struct hci_conn *hci_connect_acl(struct hci_dev *hdev, bdaddr_t *dst,
+						u8 sec_level, u8 auth_type)
 {
 	struct hci_conn *acl;
 
@@ -599,7 +596,8 @@ struct hci_conn *hci_connect(struct hci_dev *hdev, int type, bdaddr_t *dst,
 }
 
 static struct hci_conn *hci_connect_sco(struct hci_dev *hdev, int type,
-				bdaddr_t *dst, u8 sec_level, u8 auth_type)
+				bdaddr_t *dst, u8 sec_level, u8 auth_type,
+				struct bt_sco_parameters *sco_parameters)
 {
 	struct hci_conn *acl;
 	struct hci_conn *sco;
@@ -643,7 +641,8 @@ static struct hci_conn *hci_connect_sco(struct hci_dev *hdev, int type,
 
 /* Create SCO, ACL or LE connection. */
 struct hci_conn *hci_connect(struct hci_dev *hdev, int type, bdaddr_t *dst,
-			     __u8 dst_type, __u8 sec_level, __u8 auth_type)
+			     __u8 dst_type, __u8 sec_level, __u8 auth_type,
+				 struct bt_sco_parameters *sco_parameters)
 {
 	BT_DBG("%s dst %pMR type 0x%x", hdev->name, dst, type);
 
@@ -654,7 +653,7 @@ struct hci_conn *hci_connect(struct hci_dev *hdev, int type, bdaddr_t *dst,
 		return hci_connect_acl(hdev, dst, sec_level, auth_type);
 	case SCO_LINK:
 	case ESCO_LINK:
-		return hci_connect_sco(hdev, type, dst, sec_level, auth_type);
+		return hci_connect_sco(hdev, type, dst, sec_level, auth_type, sco_parameters);
 	}
 
 	return ERR_PTR(-EINVAL);

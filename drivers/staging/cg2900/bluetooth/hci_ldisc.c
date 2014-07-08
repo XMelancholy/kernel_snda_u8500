@@ -462,7 +462,7 @@ static int hci_uart_register_dev(struct hci_uart *hu)
 	hdev->send  = hci_uart_send_frame;
 
 	if (!reset)
-		set_bit(HCI_QUIRK_NO_RESET, &hdev->quirks);
+		set_bit(HCI_QUIRK_RESET_ON_CLOSE, &hdev->quirks);
 
 	if (test_bit(HCI_UART_RAW_DEVICE, &hu->hdev_flags))
 		set_bit(HCI_QUIRK_RAW_DEVICE, &hdev->quirks);
