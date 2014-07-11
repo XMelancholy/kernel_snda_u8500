@@ -877,11 +877,6 @@ static int l2cap_sock_shutdown(struct socket *sock, int how)
 	l2cap_chan_lock(chan);
 	lock_sock(sk);
 
-	if (sock_flag(sk, SOCK_ZAPPED)) {
-		err = -EPERM;
-		goto zapped;
-	}
-
 	if (!sk->sk_shutdown) {
 		if (chan->mode == L2CAP_MODE_ERTM)
 			err = __l2cap_wait_ack(sk);
@@ -900,7 +895,6 @@ static int l2cap_sock_shutdown(struct socket *sock, int how)
 	if (!err && sk->sk_err)
 		err = -sk->sk_err;
 
-zapped:
 	release_sock(sk);
 	l2cap_chan_unlock(chan);
 
@@ -923,8 +917,6 @@ static int l2cap_sock_release(struct socket *sock)
 	bt_sock_unlink(&l2cap_sk_list, sk);
 
 	err = l2cap_sock_shutdown(sock, 2);
-	if (err == -EPERM)
-		return 0;
 
 	sock_orphan(sk);
 	l2cap_sock_kill(sk);
@@ -1306,7 +1298,7 @@ int __init l2cap_init_sockets(void)
 		goto error;
 	}
 
-	err = bt_procfs_init(THIS_MODULE, &init_net, "l2cap", &l2cap_sk_list,
+	err = bt_procfs_init(&init_net, "l2cap", &l2cap_sk_list,
 			     NULL);
 	if (err < 0) {
 		BT_ERR("Failed to create L2CAP proc file");

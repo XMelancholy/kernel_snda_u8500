@@ -314,7 +314,6 @@ struct hci_conn {
 	__u8		type;
 	bool		out;
 	__u8		attempt;
-	__u8		no_autoretry;
 	__u8		dev_class[3];
 	__u8		features[HCI_MAX_PAGES][8];
 	__u16		interval;
@@ -339,7 +338,6 @@ struct hci_conn {
 	bool		flush_key;
 
 	unsigned int	sent;
-	unsigned int	num_pkt_reserved;
 
 	struct sk_buff_head data_q;
 	struct list_head chan_list;
@@ -355,8 +353,6 @@ struct hci_conn {
 	void		*sco_data;
 	void		*smp_conn;
 	struct amp_mgr	*amp_mgr;
-
-	struct bt_sco_parameters	*sco_parameters;
 
 	struct hci_conn	*link;
 
@@ -585,10 +581,8 @@ void hci_disconnect(struct hci_conn *conn, __u8 reason);
 void hci_setup_sync(struct hci_conn *conn, __u16 handle);
 void hci_sco_setup(struct hci_conn *conn, __u8 status);
 
-struct hci_conn *hci_conn_add(struct hci_dev *hdev, int type,
-					 bdaddr_t *dst);
+struct hci_conn *hci_conn_add(struct hci_dev *hdev, int type, bdaddr_t *dst);
 int hci_conn_del(struct hci_conn *conn);
-void hci_conn_reserve_credit(struct hci_dev *hdev, u16 handle, u8 num_pkt);
 void hci_conn_hash_flush(struct hci_dev *hdev);
 void hci_conn_check_pending(struct hci_dev *hdev);
 
@@ -598,9 +592,7 @@ void hci_chan_list_flush(struct hci_conn *conn);
 struct hci_chan *hci_chan_lookup_handle(struct hci_dev *hdev, __u16 handle);
 
 struct hci_conn *hci_connect(struct hci_dev *hdev, int type, bdaddr_t *dst,
-				__u8 dst_type, __u8 sec_level, __u8 auth_type,
-				struct bt_sco_parameters *sco_parameters);
-
+			     __u8 dst_type, __u8 sec_level, __u8 auth_type);
 int hci_conn_check_link_mode(struct hci_conn *conn);
 int hci_conn_check_secure(struct hci_conn *conn, __u8 sec_level);
 int hci_conn_security(struct hci_conn *conn, __u8 sec_level, __u8 auth_type);
@@ -662,7 +654,7 @@ static inline void hci_conn_drop(struct hci_conn *conn)
 			if (conn->state == BT_CONNECTED) {
 				timeo = conn->disc_timeout;
 				if (!conn->out)
-					timeo *= 20;
+					timeo *= 2;
 			} else {
 				timeo = msecs_to_jiffies(10);
 			}

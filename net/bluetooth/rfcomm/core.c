@@ -277,7 +277,7 @@ static void rfcomm_dlc_clear_timer(struct rfcomm_dlc *d)
 {
 	BT_DBG("dlc %p state %ld", d, d->state);
 
-	if (timer_pending(&d->timer) && del_timer(&d->timer))
+	if (del_timer(&d->timer))
 		rfcomm_dlc_put(d);
 }
 
@@ -436,6 +436,7 @@ static int __rfcomm_dlc_close(struct rfcomm_dlc *d, int err)
 
 	switch (d->state) {
 	case BT_CONNECT:
+	case BT_CONFIG:
 		if (test_and_clear_bit(RFCOMM_DEFER_SETUP, &d->flags)) {
 			set_bit(RFCOMM_AUTH_REJECT, &d->flags);
 			rfcomm_schedule();
@@ -789,14 +790,8 @@ static int rfcomm_send_ua(struct rfcomm_session *s, u8 dlci)
 static int rfcomm_send_disc(struct rfcomm_session *s, u8 dlci)
 {
 	struct rfcomm_cmd cmd;
-	struct sock *sk = s->sock->sk;
-	struct l2cap_conn *conn = l2cap_pi(sk)->chan->conn;
 
 	BT_DBG("%p dlci %d", s, dlci);
-	/* Force remote out of the sniff mode so that it
-	will immediately notice the disconnection. This change
-	was introduced according to AOSP comments */
-	hci_conn_enter_active_mode(conn->hcon, 1);
 
 	cmd.addr = __addr(s->initiator, dlci);
 	cmd.ctrl = __ctrl(RFCOMM_DISC, 1);

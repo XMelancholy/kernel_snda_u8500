@@ -116,18 +116,6 @@ int bt_err(const char *fmt, ...);
 #define BT_ERR(fmt, ...)	bt_err(fmt "\n", ##__VA_ARGS__)
 #define BT_DBG(fmt, ...)	pr_debug(fmt "\n", ##__VA_ARGS__)
 
-#define BT_SCO_PARAMETERS	8
-struct bt_sco_parameters {
-	__u32 tx_bandwidth;
-	__u32 rx_bandwidth;
-	__u16 max_latency;
-	__u16 voice_setting;
-	__u8  retrans_effort;
-	__u16 pkt_type;
-} __packed;
-
-#define BT_NO_AUTORETRY	9
-
 /* Connection and socket states */
 enum {
 	BT_CONNECTED = 1, /* Equal to TCP_ESTABLISHED to make net code happy */
@@ -238,7 +226,6 @@ struct bt_sock_list {
 	struct hlist_head head;
 	rwlock_t          lock;
 #ifdef CONFIG_PROC_FS
-        struct file_operations   fops;
         int (* custom_seq_show)(struct seq_file *, void *);
 #endif
 };
@@ -342,7 +329,7 @@ extern void hci_sock_cleanup(void);
 extern int bt_sysfs_init(void);
 extern void bt_sysfs_cleanup(void);
 
-extern int  bt_procfs_init(struct module* module, struct net *net, const char *name,
+extern int  bt_procfs_init(struct net *net, const char *name,
 			   struct bt_sock_list* sk_list,
 			   int (* seq_show)(struct seq_file *, void *));
 extern void bt_procfs_cleanup(struct net *net, const char *name);

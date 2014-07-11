@@ -13,6 +13,7 @@ struct file;
 struct path;
 struct inode;
 struct dentry;
+struct user_namespace;
 
 struct seq_file {
 	char *buf;
@@ -126,6 +127,12 @@ int seq_put_decimal_ull(struct seq_file *m, char delimiter,
 			unsigned long long num);
 int seq_put_decimal_ll(struct seq_file *m, char delimiter,
 			long long num);
+
+static inline struct user_namespace *seq_user_ns(struct seq_file *seq)
+{
+	extern struct user_namespace init_user_ns;
+	return &init_user_ns;
+}
 
 #define SEQ_START_TOKEN ((void *)1)
 /*

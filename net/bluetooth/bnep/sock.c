@@ -64,7 +64,7 @@ static int bnep_sock_ioctl(struct socket *sock, unsigned int cmd, unsigned long 
 	switch (cmd) {
 	case BNEPCONNADD:
 		if (!capable(CAP_NET_ADMIN))
-			return -EACCES;
+			return -EPERM;
 
 		if (copy_from_user(&ca, argp, sizeof(ca)))
 			return -EFAULT;
@@ -90,7 +90,7 @@ static int bnep_sock_ioctl(struct socket *sock, unsigned int cmd, unsigned long 
 
 	case BNEPCONNDEL:
 		if (!capable(CAP_NET_ADMIN))
-			return -EACCES;
+			return -EPERM;
 
 		if (copy_from_user(&cd, argp, sizeof(cd)))
 			return -EFAULT;
@@ -118,32 +118,6 @@ static int bnep_sock_ioctl(struct socket *sock, unsigned int cmd, unsigned long 
 		if (!err && copy_to_user(argp, &ci, sizeof(ci)))
 			return -EFAULT;
 
-		return err;
-
-	case BNEPEXTENSION: {
-			struct bnep_extension_req ext;
-			struct sk_buff *skb;
-			void __user *datap;
-
-			if (copy_from_user(&ext, argp, sizeof(ext)))
-				return -EFAULT;
-
-			skb = alloc_skb(ext.data_len, GFP_KERNEL);
-			if (!skb)
-				return -ENOMEM;
-
-			datap = (void __user *)((__u8*)argp + sizeof(ext));
-			if (copy_from_user(skb_put(skb, ext.data_len), datap,
-					ext.data_len)) {
-				err = -EFAULT;
-				goto ext_fin;
-			}
-
-			err = bnep_extension_req(ext.dst, skb);
-
-ext_fin:
-			kfree_skb(skb);
-		}
 		return err;
 
 	default:
@@ -260,7 +234,7 @@ int __init bnep_sock_init(void)
 		goto error;
 	}
 
-	err = bt_procfs_init(THIS_MODULE, &init_net, "bnep", &bnep_sk_list, NULL);
+	err = bt_procfs_init(&init_net, "bnep", &bnep_sk_list, NULL);
 	if (err < 0) {
 		BT_ERR("Failed to create BNEP proc file");
 		bt_sock_unregister(BTPROTO_BNEP);

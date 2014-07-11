@@ -290,4 +290,10 @@ static inline struct net *PDE_NET(struct proc_dir_entry *pde)
 	return pde->parent->data;
 }
 
+//extern void *PDE_DATA(const struct inode *);
+static inline void *PDE_DATA(const struct inode *inode)
+{
+	return PROC_I(inode)->pde->data;
+}
+
 #endif /* _LINUX_PROC_FS_H */

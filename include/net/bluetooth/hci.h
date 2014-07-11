@@ -198,10 +198,8 @@ enum {
 #define ESCO_2EV5	0x0100
 #define ESCO_3EV5	0x0200
 
-#define SCO_ESCO_MASK	(ESCO_HV1 | ESCO_HV2 | ESCO_HV3)
-#define EDR_ESCO_MASK	(ESCO_2EV3 | ESCO_3EV3 | ESCO_2EV5 | ESCO_3EV5)
-#define ALL_ESCO_MASK	(SCO_ESCO_MASK | ESCO_EV3 | ESCO_EV4 | ESCO_EV5 | \
-			EDR_ESCO_MASK)
+#define SCO_ESCO_MASK  (ESCO_HV1 | ESCO_HV2 | ESCO_HV3)
+#define EDR_ESCO_MASK  (ESCO_2EV3 | ESCO_3EV3 | ESCO_2EV5 | ESCO_3EV5)
 
 /* ACL flags */
 #define ACL_START_NO_FLUSH	0x00
@@ -501,21 +499,6 @@ struct hci_cp_setup_sync_conn {
 	__le16   pkt_type;
 } __packed;
 
-/* Air coding format types */
-#define HCI_SYNC_AIR_CODING_CVSD	0x00
-#define HCI_SYNC_AIR_CODING_ULAW	0x01
-#define HCI_SYNC_AIR_CODING_ALAW	0x02
-#define HCI_SYNC_AIR_CODING_TRANSPARENT	0x03
-
-/* Max latency constants */
-#define HCI_SYNC_MAX_LATENCY_DONTCARE	0xffff
-
-/* Retransmission effort constants */
-#define HCI_SYNC_RETRANS_EFFORT_NO	0x00
-#define HCI_SYNC_RETRANS_EFFORT_POWER	0x01
-#define HCI_SYNC_RETRANS_EFFORT_QUALITY	0x02
-#define HCI_SYNC_RETRANS_EFFORT_DONTCARE	0xff
-
 #define HCI_OP_ACCEPT_SYNC_CONN_REQ	0x0429
 struct hci_cp_accept_sync_conn_req {
 	bdaddr_t bdaddr;
@@ -693,21 +676,6 @@ struct hci_rp_read_def_link_policy {
 #define HCI_OP_WRITE_DEF_LINK_POLICY	0x080f
 struct hci_cp_write_def_link_policy {
 	__le16   policy;
-} __packed;
-
-#define HCI_OP_FLOW_SPECIFICATION				0x0810
-struct flow_spec {
-	__u8 direction;
-	__u8 service_type;
-	__le32 token_rate;
-	__le32 token_bucket_size;
-	__le32 peak_bandwidth;
-	__le32 access_latency;
-} __packed;
-struct flow_spec_cp {
-	__le16 handle;
-	__u8 flags;
-	struct flow_spec spec;
 } __packed;
 
 #define HCI_OP_SNIFF_SUBRATE		0x0811
@@ -1099,17 +1067,6 @@ struct hci_cp_le_ltk_neg_reply {
 struct hci_rp_le_ltk_neg_reply {
 	__u8	status;
 	__le16	handle;
-} __packed;
-
-
-#define HCI_OP_VS_EXT_FLOW_SPECIFICATION		0xFCD5
-struct vs_ext_flow_spec_cp {
-	__le16 handle;
-	__le16 service_interval;
-	__le16 out_service_window;
-	__le16 in_service_window;
-	__u8 cqae;
-	__le16 packet_size;
 } __packed;
 
 #define HCI_OP_LE_READ_SUPPORTED_STATES	0x201c
@@ -1671,9 +1628,6 @@ struct hci_conn_info {
 	__u8     out;
 	__u16    state;
 	__u32    link_mode;
-	__u32    mtu;
-	__u32    cnt;
-	__u32    pkts;
 };
 
 struct hci_dev_req {
@@ -1701,7 +1655,6 @@ struct hci_conn_info_req {
 struct hci_auth_info_req {
 	bdaddr_t bdaddr;
 	__u8     type;
-	__u8     sec_level;
 };
 
 struct hci_inquiry_req {

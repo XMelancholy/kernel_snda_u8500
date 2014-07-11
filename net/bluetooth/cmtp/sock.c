@@ -78,7 +78,7 @@ static int cmtp_sock_ioctl(struct socket *sock, unsigned int cmd, unsigned long 
 	switch (cmd) {
 	case CMTPCONNADD:
 		if (!capable(CAP_NET_ADMIN))
-			return -EACCES;
+			return -EPERM;
 
 		if (copy_from_user(&ca, argp, sizeof(ca)))
 			return -EFAULT;
@@ -103,7 +103,7 @@ static int cmtp_sock_ioctl(struct socket *sock, unsigned int cmd, unsigned long 
 
 	case CMTPCONNDEL:
 		if (!capable(CAP_NET_ADMIN))
-			return -EACCES;
+			return -EPERM;
 
 		if (copy_from_user(&cd, argp, sizeof(cd)))
 			return -EFAULT;
@@ -245,7 +245,7 @@ int cmtp_init_sockets(void)
 		goto error;
 	}
 
-	err = bt_procfs_init(THIS_MODULE, &init_net, "cmtp", &cmtp_sk_list, NULL);
+	err = bt_procfs_init(&init_net, "cmtp", &cmtp_sk_list, NULL);
 	if (err < 0) {
 		BT_ERR("Failed to create CMTP proc file");
 		bt_sock_unregister(BTPROTO_HIDP);

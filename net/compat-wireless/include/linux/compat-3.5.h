@@ -112,12 +112,6 @@ struct tc_fq_codel_xstats {
 #define tty_lock(__tty) tty_lock()
 #define tty_unlock(__tty) tty_unlock()
 
-/* Backport ether_addr_equal */
-static inline bool ether_addr_equal(const u8 *addr1, const u8 *addr2)
-{
-    return !compare_ether_addr(addr1, addr2);
-}
-
 #define net_ratelimited_function(function, ...)			\
 do {								\
 	if (net_ratelimit())					\

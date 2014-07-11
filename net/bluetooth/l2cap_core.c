@@ -398,18 +398,12 @@ static void l2cap_chan_timeout(struct work_struct *work)
 	struct l2cap_chan *chan = container_of(work, struct l2cap_chan,
 					       chan_timer.work);
 	struct l2cap_conn *conn = chan->conn;
-	struct sock *sk = (struct sock *)(chan->data);
 	int reason;
 
 	BT_DBG("chan %p state %s", chan, state_to_string(chan->state));
 
 	mutex_lock(&conn->chan_lock);
 	l2cap_chan_lock(chan);
-
-	if (sock_flag(sk, SOCK_ZAPPED)) {
-		l2cap_chan_unlock(chan);
-		goto zapped;
-	}
 
 	if (chan->state == BT_CONNECTED || chan->state == BT_CONFIG)
 		reason = ECONNREFUSED;
@@ -424,7 +418,6 @@ static void l2cap_chan_timeout(struct work_struct *work)
 	l2cap_chan_unlock(chan);
 
 	chan->ops->close(chan);
-zapped:
 	mutex_unlock(&conn->chan_lock);
 
 	l2cap_chan_put(chan);
@@ -1196,7 +1189,7 @@ static void l2cap_send_disconn_req(struct l2cap_chan *chan, int err)
 	if (!conn)
 		return;
 
-	if (chan->mode == L2CAP_MODE_ERTM) {
+	if (chan->mode == L2CAP_MODE_ERTM && chan->state == BT_CONNECTED) {
 		__clear_retrans_timer(chan);
 		__clear_monitor_timer(chan);
 		__clear_ack_timer(chan);
@@ -1554,14 +1547,8 @@ static void l2cap_conn_del(struct hci_conn *hcon, int err)
 
 	/* Kill channels */
 	list_for_each_entry_safe(chan, l, &conn->chan_l, list) {
-		struct sock *sk = (struct sock *)(chan->data);
 		l2cap_chan_hold(chan);
 		l2cap_chan_lock(chan);
-
-		if (sock_flag(sk, SOCK_ZAPPED)) {
-			l2cap_chan_unlock(chan);
-			continue;
-		}
 
 		l2cap_chan_del(chan, err);
 
@@ -1807,10 +1794,10 @@ int l2cap_chan_connect(struct l2cap_chan *chan, __le16 psm, u16 cid,
 
 	if (chan->dcid == L2CAP_CID_LE_DATA)
 		hcon = hci_connect(hdev, LE_LINK, dst, dst_type,
-					chan->sec_level, auth_type, NULL);
+				   chan->sec_level, auth_type);
 	else
 		hcon = hci_connect(hdev, ACL_LINK, dst, dst_type,
-					chan->sec_level, auth_type, NULL);
+				   chan->sec_level, auth_type);
 
 	if (IS_ERR(hcon)) {
 		err = PTR_ERR(hcon);

@@ -1748,15 +1748,6 @@ unlock:
 	hci_conn_check_pending(hdev);
 }
 
-static inline bool is_sco_active(struct hci_dev *hdev)
-{
-	if (hci_conn_hash_lookup_state(hdev, SCO_LINK, BT_CONNECTED) ||
-			(hci_conn_hash_lookup_state(hdev, ESCO_LINK,
-						    BT_CONNECTED)))
-		return true;
-	return false;
-}
-
 static void hci_conn_request_evt(struct hci_dev *hdev, struct sk_buff *skb)
 {
 	struct hci_ev_conn_request *ev = (void *) skb->data;
@@ -1803,8 +1794,7 @@ static void hci_conn_request_evt(struct hci_dev *hdev, struct sk_buff *skb)
 
 			bacpy(&cp.bdaddr, &ev->bdaddr);
 
-			if (lmp_rswitch_capable(hdev) && ((mask & HCI_LM_MASTER)
-						|| is_sco_active(hdev)))
+			if (lmp_rswitch_capable(hdev) && (mask & HCI_LM_MASTER))
 				cp.role = 0x00; /* Become master */
 			else
 				cp.role = 0x01; /* Remain slave */
@@ -1813,13 +1803,10 @@ static void hci_conn_request_evt(struct hci_dev *hdev, struct sk_buff *skb)
 				     &cp);
 		} else if (!(flags & HCI_PROTO_DEFER)) {
 			struct hci_cp_accept_sync_conn_req cp;
-			__u16 pkt_type;
-
-			pkt_type = conn->pkt_type ^ EDR_ESCO_MASK;
 			conn->state = BT_CONNECT;
 
 			bacpy(&cp.bdaddr, &ev->bdaddr);
-			cp.pkt_type = cpu_to_le16(pkt_type);
+			cp.pkt_type = cpu_to_le16(conn->pkt_type);
 
 			cp.tx_bandwidth   = __constant_cpu_to_le32(0x00001f40);
 			cp.rx_bandwidth   = __constant_cpu_to_le32(0x00001f40);
@@ -2976,13 +2963,13 @@ static void hci_sync_conn_complete_evt(struct hci_dev *hdev,
 		hci_conn_add_sysfs(conn);
 		break;
 
-	case 0x10:	/* Connection Accept Timeout */
 	case 0x11:	/* Unsupported Feature or Parameter Value */
 	case 0x1c:	/* SCO interval rejected */
 	case 0x1a:	/* Unsupported Remote Feature */
 	case 0x1f:	/* Unspecified error */
-		if (conn->out && !conn->no_autoretry && conn->attempt < 2) {
-			conn->pkt_type = hdev->esco_type & SCO_ESCO_MASK;
+		if (conn->out && conn->attempt < 2) {
+			conn->pkt_type = (hdev->esco_type & SCO_ESCO_MASK) |
+					(hdev->esco_type & EDR_ESCO_MASK);
 			hci_setup_sync(conn, conn->link->handle);
 			goto unlock;
 		}
@@ -3624,21 +3611,11 @@ static void hci_le_ltk_request_evt(struct hci_dev *hdev, struct sk_buff *skb)
 	cp.handle = cpu_to_le16(conn->handle);
 
 	if (ltk->authenticated)
-		conn->pending_sec_level = BT_SECURITY_HIGH;
-	else
-		conn->pending_sec_level = BT_SECURITY_MEDIUM;
-
-	conn->enc_key_size = ltk->enc_size;
+		conn->sec_level = BT_SECURITY_HIGH;
 
 	hci_send_cmd(hdev, HCI_OP_LE_LTK_REPLY, sizeof(cp), &cp);
 
-	/* Ref. Bluetooth Core SPEC pages 1975 and 2004. STK is a
-	 * temporary key used to encrypt a connection following
-	 * pairing. It is used during the Encrypted Session Setup to
-	 * distribute the keys. Later, security can be re-established
-	 * using a distributed LTK.
-	 */
-	if (ltk->type == HCI_SMP_STK_SLAVE) {
+	if (ltk->type & HCI_SMP_STK) {
 		list_del(&ltk->list);
 		kfree(ltk);
 	}

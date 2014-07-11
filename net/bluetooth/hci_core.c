@@ -2351,7 +2351,7 @@ int hci_recv_frame(struct sk_buff *skb)
 		return -ENXIO;
 	}
 
-	/* Incomming skb */
+	/* Incoming skb */
 	bt_cb(skb)->incoming = 1;
 
 	/* Time stamp */
@@ -2922,7 +2922,7 @@ static struct hci_chan *hci_chan_sent(struct hci_dev *hdev, __u8 type,
 				      int *quote)
 {
 	struct hci_conn_hash *h = &hdev->conn_hash;
-	struct hci_chan *chan = NULL, *chan_reserved = NULL;
+	struct hci_chan *chan = NULL;
 	unsigned int num = 0, min = ~0, cur_prio = 0;
 	struct hci_conn *conn;
 	int cnt, q, conn_num = 0;
@@ -2944,9 +2944,6 @@ static struct hci_chan *hci_chan_sent(struct hci_dev *hdev, __u8 type,
 
 		list_for_each_entry_rcu(tmp, &conn->chan_list, list) {
 			struct sk_buff *skb;
-
-			if (tmp->conn->num_pkt_reserved)
-				chan_reserved = tmp;
 
 			if (skb_queue_empty(&tmp->data_q))
 				continue;
@@ -2999,33 +2996,6 @@ static struct hci_chan *hci_chan_sent(struct hci_dev *hdev, __u8 type,
 
 	q = cnt / num;
 	*quote = q ? q : 1;
-	if (chan_reserved && !chan->conn->num_pkt_reserved) {
-		int cred_left, cred_used;
-		struct hci_conn *conn_reserved;
-
-		/* Calculate the credits a non-reserved conn can use */
-		conn_reserved = chan_reserved->conn;
-		cred_used = (conn_reserved->sent >= conn_reserved->num_pkt_reserved)
-				? conn_reserved->num_pkt_reserved : conn_reserved->sent;
-
-		cred_left = cnt - (conn_reserved->num_pkt_reserved - cred_used);
-
-		if (*quote > cred_left)
-			*quote = cred_left > 0 ? cred_left : 0;
-
-		if (!*quote) {
-			/* Send the packet of reserved channel,
-			 * since bandwidth is not available for sending
-			 * any packets on other channel.
-			 */
-			if (!skb_queue_empty(&chan_reserved->data_q)) {
-				chan = chan_reserved;
-				*quote = q ? q : 1;
-			} else {
-				chan = NULL;
-			}
-		}
-	}
 	BT_DBG("chan %p quote %d", chan, *quote);
 	return chan;
 }
