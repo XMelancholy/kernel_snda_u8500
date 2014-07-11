@@ -373,7 +373,7 @@ static int ath3k_load_syscfg(struct usb_device *udev)
 
 	ret = ath3k_get_state(udev, &fw_state);
 	if (ret < 0) {
-		BT_ERR("Can't get state to change to load configration err");
+		BT_ERR("Can't get state to change to load configuration err");
 		return -EBUSY;
 	}
 
@@ -487,6 +487,7 @@ static struct usb_driver ath3k_driver = {
 	.probe		= ath3k_probe,
 	.disconnect	= ath3k_disconnect,
 	.id_table	= ath3k_table,
+	.disable_hub_initiated_lpm = 1,
 };
 
 module_usb_driver(ath3k_driver);
