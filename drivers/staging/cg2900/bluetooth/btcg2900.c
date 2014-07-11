@@ -433,6 +433,7 @@ static int btcg2900_send(struct sk_buff *skb)
 	return err;
 }
 
+#if 0
 /**
  * btcg2900_destruct() - Destruct HCI interface.
  * @hdev:	HCI device being destructed.
@@ -467,6 +468,7 @@ static void btcg2900_destruct(struct hci_dev *hdev)
 		wake_up_all(&hci_wait_queue);
 	}
 }
+#endif
 
 /**
  * get_info() - Return info structure for this device.
