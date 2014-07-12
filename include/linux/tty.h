@@ -268,7 +268,6 @@ struct tty_struct {
 	struct mutex ldisc_mutex;
 	struct tty_ldisc *ldisc;
 
-	struct mutex legacy_mutex;
 	struct mutex termios_mutex;
 	spinlock_t ctrl_lock;
 	/* Termios values are protected by the termios mutex */
@@ -411,10 +410,6 @@ extern int tty_register_driver(struct tty_driver *driver);
 extern int tty_unregister_driver(struct tty_driver *driver);
 extern struct device *tty_register_device(struct tty_driver *driver,
 					  unsigned index, struct device *dev);
-extern struct device *tty_register_device_attr(struct tty_driver *driver,
-				unsigned index, struct device *device,
-				void *drvdata,
-				const struct attribute_group **attr_grp);
 extern void tty_unregister_device(struct tty_driver *driver, unsigned index);
 extern int tty_read_raw_data(struct tty_struct *tty, unsigned char *bufp,
 			     int buflen);
@@ -502,9 +497,6 @@ extern int tty_write_lock(struct tty_struct *tty, int ndelay);
 #define tty_is_writelocked(tty)  (mutex_is_locked(&tty->atomic_write_lock))
 
 extern void tty_port_init(struct tty_port *port);
-extern struct device *tty_port_register_device(struct tty_port *port,
-		struct tty_driver *driver, unsigned index,
-		struct device *device);
 extern int tty_port_alloc_xmit_buf(struct tty_port *port);
 extern void tty_port_free_xmit_buf(struct tty_port *port);
 extern void tty_port_put(struct tty_port *port);
@@ -613,12 +605,8 @@ extern long vt_compat_ioctl(struct tty_struct *tty,
 
 /* tty_mutex.c */
 /* functions for preparation of BKL removal */
-extern void __lockfunc tty_lock(struct tty_struct *tty);
-extern void __lockfunc tty_unlock(struct tty_struct *tty);
-extern void __lockfunc tty_lock_pair(struct tty_struct *tty,
-				struct tty_struct *tty2);
-extern void __lockfunc tty_unlock_pair(struct tty_struct *tty,
-				struct tty_struct *tty2);
+extern void __lockfunc tty_lock(void) __acquires(tty_lock);
+extern void __lockfunc tty_unlock(void) __releases(tty_lock);
 
 /*
  * this shall be called only from where BTM is held (like close)
@@ -633,9 +621,9 @@ extern void __lockfunc tty_unlock_pair(struct tty_struct *tty,
 static inline void tty_wait_until_sent_from_close(struct tty_struct *tty,
 		long timeout)
 {
-	tty_unlock(tty); /* tty->ops->close holds the BTM, drop it while waiting */
+	tty_unlock(); /* tty->ops->close holds the BTM, drop it while waiting */
 	tty_wait_until_sent(tty, timeout);
-	tty_lock(tty);
+	tty_lock();
 }
 
 /*
@@ -650,16 +638,16 @@ static inline void tty_wait_until_sent_from_close(struct tty_struct *tty,
  *
  * Do not use in new code.
  */
-#define wait_event_interruptible_tty(tty, wq, condition)		\
+#define wait_event_interruptible_tty(wq, condition)			\
 ({									\
 	int __ret = 0;							\
 	if (!(condition)) {						\
-		__wait_event_interruptible_tty(tty, wq, condition, __ret);	\
+		__wait_event_interruptible_tty(wq, condition, __ret);	\
 	}								\
 	__ret;								\
 })
 
-#define __wait_event_interruptible_tty(tty, wq, condition, ret)		\
+#define __wait_event_interruptible_tty(wq, condition, ret)		\
 do {									\
 	DEFINE_WAIT(__wait);						\
 									\
@@ -668,9 +656,9 @@ do {									\
 		if (condition)						\
 			break;						\
 		if (!signal_pending(current)) {				\
-			tty_unlock(tty);					\
+			tty_unlock();					\
 			schedule();					\
-			tty_lock(tty);					\
+			tty_lock();					\
 			continue;					\
 		}							\
 		ret = -ERESTARTSYS;					\
