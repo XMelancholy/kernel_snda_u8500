@@ -573,7 +573,7 @@ void __tty_hangup(struct tty_struct *tty)
 	}
 	spin_unlock(&redirect_lock);
 
-	tty_lock();
+	tty_lock(tty);
 
 	/* some functions below drop BTM, so we need this bit */
 	set_bit(TTY_HUPPING, &tty->flags);
@@ -666,7 +666,7 @@ void __tty_hangup(struct tty_struct *tty)
 	clear_bit(TTY_HUPPING, &tty->flags);
 	tty_ldisc_enable(tty);
 
-	tty_unlock();
+	tty_unlock(tty);
 
 	if (f)
 		fput(f);
@@ -855,10 +855,11 @@ void disassociate_ctty(int on_exit)
  */
 void no_tty(void)
 {
+	/* FIXME: Review locking here. The tty_lock never covered any race
+	   between a new association and proc_clear_tty but possible we need
+	   to protect against this anyway */
 	struct task_struct *tsk = current;
-	tty_lock();
 	disassociate_ctty(0);
-	tty_unlock();
 	proc_clear_tty(tsk);
 }
 
@@ -1112,12 +1113,12 @@ void tty_write_message(struct tty_struct *tty, char *msg)
 {
 	if (tty) {
 		mutex_lock(&tty->atomic_write_lock);
-		tty_lock();
+		tty_lock(tty);
 		if (tty->ops->write && !test_bit(TTY_CLOSING, &tty->flags)) {
-			tty_unlock();
+			tty_unlock(tty);
 			tty->ops->write(tty, msg, strlen(msg));
 		} else
-			tty_unlock();
+			tty_unlock(tty);
 		tty_write_unlock(tty);
 	}
 	return;
@@ -1637,7 +1638,7 @@ int tty_release(struct inode *inode, struct file *filp)
 	if (tty_paranoia_check(tty, inode, __func__))
 		return 0;
 
-	tty_lock();
+	tty_lock(tty);
 	check_tty_count(tty, __func__);
 
 	__tty_fasync(-1, filp, 0);
@@ -1649,7 +1650,7 @@ int tty_release(struct inode *inode, struct file *filp)
 	o_tty = tty->link;
 
 	if (tty_release_checks(tty, o_tty, idx)) {
-		tty_unlock();
+		tty_unlock(tty);
 		return 0;
 	}
 
@@ -1661,7 +1662,7 @@ int tty_release(struct inode *inode, struct file *filp)
 	if (tty->ops->close)
 		tty->ops->close(tty, filp);
 
-	tty_unlock();
+	tty_unlock(tty);
 	/*
 	 * Sanity check: if tty->count is going to zero, there shouldn't be
 	 * any waiters on tty->read_wait or tty->write_wait.  We test the
@@ -1684,7 +1685,7 @@ int tty_release(struct inode *inode, struct file *filp)
 		   opens on /dev/tty */
 
 		mutex_lock(&tty_mutex);
-		tty_lock();
+		tty_lock(tty);
 		tty_closing = tty->count <= 1;
 		o_tty_closing = o_tty &&
 			(o_tty->count <= (pty_master ? 1 : 0));
@@ -1715,7 +1716,7 @@ int tty_release(struct inode *inode, struct file *filp)
 
 		printk(KERN_WARNING "%s: %s: read/write wait queue active!\n",
 				__func__, tty_name(tty, buf));
-		tty_unlock();
+		tty_unlock(tty);
 		mutex_unlock(&tty_mutex);
 		schedule();
 	}
@@ -1778,7 +1779,7 @@ int tty_release(struct inode *inode, struct file *filp)
 
 	/* check whether both sides are closing ... */
 	if (!tty_closing || (o_tty && !o_tty_closing)) {
-		tty_unlock();
+		tty_unlock(tty);
 		return 0;
 	}
 
@@ -1798,7 +1799,7 @@ int tty_release(struct inode *inode, struct file *filp)
 	/* Make this pty number available for reallocation */
 	if (devpts)
 		devpts_kill_index(inode, idx);
-	tty_unlock();
+	tty_unlock(tty);
 	return 0;
 }
 
@@ -1921,7 +1922,7 @@ retry_open:
 	retval = 0;
 
 	mutex_lock(&tty_mutex);
-	tty_lock();
+	//tty_lock(tty);
 
 	tty = tty_open_current_tty(device, filp);
 	if (IS_ERR(tty)) {
@@ -1953,7 +1954,7 @@ retry_open:
 	if (driver)
 		tty_driver_kref_put(driver);
 	if (IS_ERR(tty)) {
-		tty_unlock();
+		tty_unlock(tty);
 		retval = PTR_ERR(tty);
 		goto err_file;
 	}
@@ -1982,7 +1983,7 @@ retry_open:
 		printk(KERN_DEBUG "%s: error %d in opening %s...\n", __func__,
 				retval, tty->name);
 #endif
-		tty_unlock(); /* need to call tty_release without BTM */
+		tty_unlock(tty); /* need to call tty_release without BTM */
 		tty_release(inode, filp);
 		if (retval != -ERESTARTSYS)
 			return retval;
@@ -1994,17 +1995,17 @@ retry_open:
 		/*
 		 * Need to reset f_op in case a hangup happened.
 		 */
-		tty_lock();
+		tty_lock(tty);
 		if (filp->f_op == &hung_up_tty_fops)
 			filp->f_op = &tty_fops;
-		tty_unlock();
+		tty_unlock(tty);
 		goto retry_open;
 	}
-	tty_unlock();
+	tty_unlock(tty);
 
 
 	mutex_lock(&tty_mutex);
-	tty_lock();
+	tty_lock(tty);
 	spin_lock_irq(&current->sighand->siglock);
 	if (!noctty &&
 	    current->signal->leader &&
@@ -2012,11 +2013,11 @@ retry_open:
 	    tty->session == NULL)
 		__proc_set_tty(current, tty);
 	spin_unlock_irq(&current->sighand->siglock);
-	tty_unlock();
+	tty_unlock(tty);
 	mutex_unlock(&tty_mutex);
 	return 0;
 err_unlock:
-	tty_unlock();
+	tty_unlock(tty);
 	mutex_unlock(&tty_mutex);
 	/* after locks to avoid deadlock */
 	if (!IS_ERR_OR_NULL(driver))
@@ -2099,10 +2100,13 @@ out:
 
 static int tty_fasync(int fd, struct file *filp, int on)
 {
+	struct tty_struct *tty = file_tty(filp);
 	int retval;
-	tty_lock();
+
+	tty_lock(tty);
 	retval = __tty_fasync(fd, filp, on);
-	tty_unlock();
+	tty_unlock(tty);
+
 	return retval;
 }
 

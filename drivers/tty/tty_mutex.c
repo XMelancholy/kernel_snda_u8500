@@ -19,13 +19,13 @@ static DEFINE_MUTEX(big_tty_mutex);
 /*
  * Getting the big tty mutex.
  */
-void __lockfunc tty_lock(void)
+void __lockfunc tty_lock(struct tty_struct *tty)
 {
 	mutex_lock(&big_tty_mutex);
 }
 EXPORT_SYMBOL(tty_lock);
 
-void __lockfunc tty_unlock(void)
+void __lockfunc tty_unlock(struct tty_struct *tty)
 {
 	mutex_unlock(&big_tty_mutex);
 }

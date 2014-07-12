@@ -33,6 +33,70 @@ void tty_port_init(struct tty_port *port)
 }
 EXPORT_SYMBOL(tty_port_init);
 
+/**
+ * tty_port_link_device - link tty and tty_port
+ * @port: tty_port of the device
+ * @driver: tty_driver for this device
+ * @index: index of the tty
+ *
+ * Provide the tty layer wit ha link from a tty (specified by @index) to a
+ * tty_port (@port). Use this only if neither tty_port_register_device nor
+ * tty_port_install is used in the driver. If used, this has to be called before
+ * tty_register_driver.
+ */
+void tty_port_link_device(struct tty_port *port,
+		struct tty_driver *driver, unsigned index)
+{
+	if (WARN_ON(index >= driver->num))
+		return;
+	driver->ports[index] = port;
+}
+EXPORT_SYMBOL_GPL(tty_port_link_device);
+
+/**
+ * tty_port_register_device - register tty device
+ * @port: tty_port of the device
+ * @driver: tty_driver for this device
+ * @index: index of the tty
+ * @device: parent if exists, otherwise NULL
+ *
+ * It is the same as tty_register_device except the provided @port is linked to
+ * a concrete tty specified by @index. Use this or tty_port_install (or both).
+ * Call tty_port_link_device as a last resort.
+ */
+struct device *tty_port_register_device(struct tty_port *port,
+		struct tty_driver *driver, unsigned index,
+		struct device *device)
+{
+	tty_port_link_device(port, driver, index);
+	return tty_register_device(driver, index, device);
+}
+EXPORT_SYMBOL_GPL(tty_port_register_device);
+
+/**
+ * tty_port_register_device_attr - register tty device
+ * @port: tty_port of the device
+ * @driver: tty_driver for this device
+ * @index: index of the tty
+ * @device: parent if exists, otherwise NULL
+ * @drvdata: Driver data to be set to device.
+ * @attr_grp: Attribute group to be set on device.
+ *
+ * It is the same as tty_register_device_attr except the provided @port is
+ * linked to a concrete tty specified by @index. Use this or tty_port_install
+ * (or both). Call tty_port_link_device as a last resort.
+ */
+struct device *tty_port_register_device_attr(struct tty_port *port,
+		struct tty_driver *driver, unsigned index,
+		struct device *device, void *drvdata,
+		const struct attribute_group **attr_grp)
+{
+	tty_port_link_device(port, driver, index);
+	return tty_register_device_attr(driver, index, device, drvdata,
+			attr_grp);
+}
+EXPORT_SYMBOL_GPL(tty_port_register_device_attr);
+
 int tty_port_alloc_xmit_buf(struct tty_port *port)
 {
 	/* We may sleep in get_zeroed_page() */
@@ -230,7 +294,7 @@ int tty_port_block_til_ready(struct tty_port *port,
 
 	/* block if port is in the process of being closed */
 	if (tty_hung_up_p(filp) || port->flags & ASYNC_CLOSING) {
-		wait_event_interruptible_tty(port->close_wait,
+		wait_event_interruptible_tty(tty, port->close_wait,
 				!(port->flags & ASYNC_CLOSING));
 		if (port->flags & ASYNC_HUP_NOTIFY)
 			return -EAGAIN;
@@ -296,9 +360,9 @@ int tty_port_block_til_ready(struct tty_port *port,
 			retval = -ERESTARTSYS;
 			break;
 		}
-		tty_unlock();
+		tty_unlock(tty);
 		schedule();
-		tty_lock();
+		tty_lock(tty);
 	}
 	finish_wait(&port->open_wait, &wait);
 
