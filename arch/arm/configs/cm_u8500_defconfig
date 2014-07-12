@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm 3.4.97 Kernel Configuration
+# Linux/arm 3.4.98 Kernel Configuration
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -959,6 +959,7 @@ CONFIG_BT_HCIUART=y
 # CONFIG_BT_HCIBFUSB is not set
 # CONFIG_BT_HCIVHCI is not set
 # CONFIG_BT_MRVL is not set
+# CONFIG_BT_ATH3K is not set
 # CONFIG_AF_RXRPC is not set
 CONFIG_FIB_RULES=y
 CONFIG_WIRELESS=y
@@ -1518,6 +1519,7 @@ CONFIG_SERIO_SERPORT=y
 #
 # Character devices
 #
+CONFIG_TTY=y
 # CONFIG_VT is not set
 CONFIG_UNIX98_PTYS=y
 # CONFIG_DEVPTS_MULTIPLE_INSTANCES is not set
@@ -1554,6 +1556,8 @@ CONFIG_CONSOLE_POLL=y
 # CONFIG_HVC_DCC is not set
 # CONFIG_IPMI_HANDLER is not set
 CONFIG_HW_RANDOM=y
+# CONFIG_HW_RANDOM_TIMERIOMEM is not set
+CONFIG_HW_RANDOM_NOMADIK=y
 # CONFIG_R3964 is not set
 # CONFIG_RAW_DRIVER is not set
 # CONFIG_TCG_TPM is not set
