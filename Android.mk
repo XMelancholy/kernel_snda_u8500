@@ -10,13 +10,6 @@ PRIVATE_KERNEL_ARGS := -C kernel ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) LOCALVE
 
 PRIVATE_OUT := $(abspath $(PRODUCT_OUT)/system)
 
-PATH := $(PATH):$(BOOT_PATH)/u-boot/tools:$(abspath $(UBOOT_OUTPUT)/tools)
-export PATH
-
-# Disable WLAN for now
-WLAN_ENABLE_OPEN_MAC_SOLUTION:=true
-
-
 # only do this if we are buidling out of tree
 ifneq ($(KERNEL_OUTPUT),)
 ifneq ($(KERNEL_OUTPUT), $(abspath $(TOP)/kernel))
@@ -26,14 +19,14 @@ else
 KERNEL_OUTPUT := $(call my-dir)
 endif
 
-build-kernel: $(PRODUCT_OUT)/uImage
+build-kernel: $(PRODUCT_OUT)/zImage
 
 # Include kernel in the Android build system
 include $(CLEAR_VARS)
 
 KERNEL_LIBPATH := $(KERNEL_OUTPUT)/arch/arm/boot
 LOCAL_PATH := $(KERNEL_LIBPATH)
-LOCAL_SRC_FILES := uImage
+LOCAL_SRC_FILES := zImage
 LOCAL_MODULE := $(LOCAL_SRC_FILES)
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := EXECUTABLES
@@ -48,9 +41,7 @@ include $(BUILD_PREBUILT)
 # This is useful if you want to play with your own, custom configuration.
 
 ifeq ($(ONE_SHOT_MAKEFILE),)
-$(KERNEL_OUTPUT)/arch/arm/boot/uImage: $(UBOOT_OUTPUT)/tools/mkimage FORCE
-else
-$(KERNEL_OUTPUT)/arch/arm/boot/uImage: FORCE
+$(KERNEL_OUTPUT)/arch/arm/boot/zImage: FORCE
 endif
 
 # only do this if we are buidling out of tree
@@ -66,7 +57,7 @@ else
 	$(MAKE) $(PRIVATE_KERNEL_ARGS) $(KERNEL_DEFCONFIG)
 endif
 
-	$(MAKE) $(PRIVATE_KERNEL_ARGS) uImage
+	$(MAKE) $(PRIVATE_KERNEL_ARGS) zImage
 ifeq ($(KERNEL_NO_MODULES),)
 	$(MAKE) $(PRIVATE_KERNEL_ARGS) modules
 	$(MAKE) $(PRIVATE_KERNEL_ARGS) INSTALL_MOD_PATH:=$(PRIVATE_OUT) modules_install
