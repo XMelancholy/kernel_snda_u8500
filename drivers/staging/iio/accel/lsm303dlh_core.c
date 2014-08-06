@@ -707,7 +707,7 @@ static void lsm303dlh_a_setup(struct lsm303dlh_a_data *data)
 	lsm303dlh_a_setbootbit(data->client, LSM303DLH_A_CR2_BOOT_ENABLE);
 }
 
-#if (!defined(CONFIG_HAS_EARLYSUSPEND) && defined(CONFIG_PM))
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_PM)
 static int lsm303dlh_a_suspend(struct device *dev)
 {
 	struct lsm303dlh_a_data *data = iio_priv(dev_get_drvdata(dev));
@@ -757,27 +757,27 @@ static const struct dev_pm_ops lsm303dlh_a_dev_pm_ops = {
 #endif
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void lsm303dlh_a_early_suspend(struct early_suspend *data)
-{/*
+{
 	struct lsm303dlh_a_data *ddata =
 		container_of(data, struct lsm303dlh_a_data, early_suspend);
 	if (ddata->mode == LSM303DLH_A_MODE_OFF)
 		return;
 
 	mutex_lock(&ddata->lock);
-*/
+
 	/* Set the device to sleep mode */
-//	lsm303dlh_a_set_mode(ddata->client, LSM303DLH_A_MODE_OFF);
+	lsm303dlh_a_set_mode(ddata->client, LSM303DLH_A_MODE_OFF);
 
 	/* Disable regulator */
-/*	lsm303dlh_a_disable(ddata);
+	lsm303dlh_a_disable(ddata);
 
 	ddata->device_status = LSM303DLH_A_DEVICE_SUSPENDED;
 
-	mutex_unlock(&ddata->lock);*/
+	mutex_unlock(&ddata->lock);
 }
 
 static void lsm303dlh_a_late_resume(struct early_suspend *data)
-{/*
+{
 	struct lsm303dlh_a_data *ddata =
 		container_of(data, struct lsm303dlh_a_data, early_suspend);
 
@@ -787,13 +787,13 @@ static void lsm303dlh_a_late_resume(struct early_suspend *data)
 		return;
 	}
 	mutex_lock(&ddata->lock);
-*/
+
 	/* Enable regulator */
-//	lsm303dlh_a_enable(ddata);
+	lsm303dlh_a_enable(ddata);
 
 	/* Set mode,rate and range */
-//	lsm303dlh_a_setup(ddata);
-//	mutex_unlock(&ddata->lock);
+	lsm303dlh_a_setup(ddata);
+	mutex_unlock(&ddata->lock);
 }
 #endif
 
